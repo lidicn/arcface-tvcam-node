@@ -46,8 +46,9 @@ public final class Constants {
     public static final long PANORAMA_FRESH_MS = 30000;
 
     // ===== 识别质量门控 =====
-    /** 实时识别（TV 路）最小人脸边长：小于该值视为噪点/远处误检 */
-    public static final int MIN_FACE_PX = 40;
+    /** 实时识别（TV 路）最小人脸边长：小于该值视为噪点/远处误检。
+     *  单人场景优化：从 40 降到 30，更远距离的小脸也能参与识别。 */
+    public static final int MIN_FACE_PX = 30;
 
     // ===== memory-agent 人脸节点池（Face-Node-Pool）=====
     // 部署相关参数（基址/节点ID/端点）已迁移至 AppConfig。
@@ -64,8 +65,9 @@ public final class Constants {
     public static final int LIVE_CONSENSUS_FRAMES = 3;
     /** 人脸消失后保留显示时长（ms） */
     public static final long LIVE_HOLD_MS = 1500;
-    /** 特征缓存有效期（ms）：同一人复用比对结果，不重复提特征 */
-    public static final long FEAT_CACHE_MS = 800;
+    /** 特征缓存有效期（ms）：同一人复用比对结果，不重复提特征。
+     *  单人场景优化：从 800 增加到 1500，减少重复提特征，提升性能和稳定性。 */
+    public static final long FEAT_CACHE_MS = 1500;
 
     // ===== Hotspot 热点算法参数 =====
     public static final double HOTSPOT_DECAY = 0.985;
@@ -74,7 +76,9 @@ public final class Constants {
     public static final double HOTSPOT_REMOVE_BELOW = 0.5;
     public static final int HOTSPOT_MAX_HOTS = 6;
     public static final long HOTSPOT_MAX_AGE_MS = 300000; // 5min
-    public static final double HOTSPOT_PAD = 0.35;
+    /** 热点 ROI 扩边比例（相对热点宽高）。
+     *  单人场景优化：从 0.35 增加到 0.6，增大 ROI 区域，减少人脸移动出 ROI 导致的漏检。 */
+    public static final double HOTSPOT_PAD = 0.6;
     public static final double HOTSPOT_EMA_ALPHA = 0.2;
     public static final int HOTSPOT_FULL_SCAN_EVERY = 6;
     public static final int HOTSPOT_ROI_NOFACE_FULL = 8;

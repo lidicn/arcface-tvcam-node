@@ -38,10 +38,12 @@ public final class RecognitionState {
     private volatile long lastUpdateMs;
 
     // ===== 实时单人/多人共识（消除逐帧闪烁）=====
-    /** 同一姓名需连续出现 N 帧才提交/切换显示，抑制单帧误判造成的闪烁。 */
-    private static final int LIVE_CONSENSUS_FRAMES = 3;
-    /** 人脸消失后保留该人显示的最长时间（ms），避免短暂遮挡即消失。 */
-    private static final long LIVE_HOLD_MS = 1500;
+    /** 同一姓名需连续出现 N 帧才提交/切换显示，抑制单帧误判造成的闪烁。
+     *  单人场景优化：从 3 降到 2，减少显示迟滞，更快响应识别结果。 */
+    private static final int LIVE_CONSENSUS_FRAMES = 2;
+    /** 人脸消失后保留该人显示的最长时间（ms），避免短暂遮挡即消失。
+     *  单人场景优化：从 1500 增加到 3000，减少短暂遮挡/姿态变化导致的频繁消失。 */
+    private static final long LIVE_HOLD_MS = 3000;
     /** 跨帧稳定轨迹表（faceId 优先，回退中心距离 + 特征相似度关联）。 */
     private final Map<String, LiveTrack> liveTracks = new HashMap<>();
     private int liveTrackSeq = 0;
