@@ -61,27 +61,61 @@
 
 ## 快速开始
 
-### 1. 环境要求
+### 1. 编译环境要求
 
-- JDK 17+
-- Android SDK（platform-34, build-tools）
-- NDK（仅在需要编译 UVC 原生库时需要，默认 Camera2 取流无需 NDK）
-- ArcSoft ArcFace 3.0 SDK（需自行下载，见下方说明）
+| 工具 | 版本要求 | 说明 |
+|------|----------|------|
+| **JDK** | 17+ | 必须 Java 17，项目 `sourceCompatibility = VERSION_17` |
+| **Android SDK** | Platform 34 | `compileSdk 34`，需安装 Android 14 (API 34) SDK Platform |
+| **Android Build Tools** | 34.x | 随 SDK Platform 自动安装 |
+| **Gradle** | 8.4 | 项目已含 `gradle-wrapper.properties`，首次构建自动下载 |
+| **NDK** | 可选 | 默认 Camera2 取流无需 NDK；仅接入 UVC 原生库时需要 |
+| **操作系统** | Windows / macOS / Linux | 跨平台构建 |
 
-### 2. 获取 ArcSoft SDK
+**验证环境：**
+```bash
+java -version          # 应显示 17.x
+echo $ANDROID_HOME     # 或 %ANDROID_HOME%，指向 Android SDK 根目录
+```
 
-> **重要**：本仓库不包含 ArcSoft SDK 文件（`.jar` / `.so`），受 ArcSoft 许可协议禁止再分发。
+**Android SDK 需安装的组件（通过 SDK Manager）：**
+- Android SDK Platform 34
+- Android SDK Build-Tools 34.x
+- Android SDK Platform-Tools（含 adb）
 
-1. 访问 [虹软视觉开放平台](https://ai.arcsoft.com.cn/)，注册账号
-2. 创建应用，包名填写 `com.example.arcfaceandroid`（或你自己的包名）
-3. 下载 Android 平台 ArcFace 3.0 SDK
-4. 将以下文件放入对应目录：
-   - `app/libs/arcsoft_face.jar`
-   - `app/src/main/jniLibs/arm64-v8a/libarcsoft_face.so`
-   - `app/src/main/jniLibs/arm64-v8a/libarcsoft_face_engine.so`
-   - `app/src/main/jniLibs/armeabi-v7a/libarcsoft_face.so`
-   - `app/src/main/jniLibs/armeabi-v7a/libarcsoft_face_engine.so`
-5. 记录 `APP_ID` 和 `SDK_KEY`，安装后在 WebUI 配置页填写
+### 2. 获取 ArcSoft ArcFace SDK（必须，本仓库不含 SDK 文件）
+
+> **重要**：受虹软许可协议限制，本仓库不包含 ArcSoft SDK 的 `.jar` 和 `.so` 文件。使用者必须自行从虹软官方下载并放入指定目录。
+
+**步骤：**
+
+1. **注册账号**：访问 [虹软视觉开放平台](https://ai.arcsoft.com.cn/)，注册并登录
+2. **创建应用**：进入「控制台」→「创建应用」，填写应用信息
+   - **包名必须填写**：`com.example.arcfaceandroid`（与项目 `applicationId` 一致）
+   - 如使用自定义包名，需同步修改 `app/build.gradle` 中的 `applicationId`
+3. **下载 SDK**：在应用详情页，下载 **Android 平台** 的 **ArcFace 3.0** SDK（人脸识别）
+   - 下载的压缩包通常包含：`libs/`（jar + so）、`samplecode/`、`doc/`
+4. **记录密钥**：在应用详情页复制 `APP_ID` 和 `SDK_KEY`（安装后在 WebUI 配置页填写）
+5. **放入 SDK 文件**：将下载的 SDK 文件复制到项目对应目录：
+
+```
+arcface-tvcam-node/
+└── app/
+    ├── libs/
+    │   └── arcsoft_face.jar          ← 从 SDK 包 libs/ 复制
+    └── src/main/jniLibs/
+        ├── arm64-v8a/
+        │   ├── libarcsoft_face.so         ← 从 SDK 包复制
+        │   └── libarcsoft_face_engine.so  ← 从 SDK 包复制
+        └── armeabi-v7a/
+            ├── libarcsoft_face.so         ← 从 SDK 包复制
+            └── libarcsoft_face_engine.so  ← 从 SDK 包复制
+```
+
+> **注意**：
+> - ArcSoft SDK 免费版通常限个人/非商用，且有设备数量限制。商用需购买企业版授权。
+> - 首次激活引擎需联网（TV 需能访问互联网），激活后可离线使用。
+> - `APP_ID` / `SDK_KEY` 与包名绑定，换包名需重新申请。
 
 ### 3. 构建
 
@@ -90,26 +124,44 @@
 git clone https://github.com/lidicn/arcface-tvcam-node.git
 cd arcface-tvcam-node
 
-# 构建 Debug APK
+# 确认已按上方步骤放入 ArcSoft SDK 文件（jar + so）
+
+# 构建 Debug APK（首次会自动下载 Gradle 8.4 和依赖）
 ./gradlew assembleDebug
+
+# Windows 下使用：
+# gradlew.bat assembleDebug
 
 # 产物路径
 # app/build/outputs/apk/debug/app-debug.apk
 ```
 
+**常见构建问题：**
+- `Could not find arcsoft_face.jar` → 未按步骤 2 放入 SDK 文件
+- `SDK location not found` → 未设置 `ANDROID_HOME` 环境变量，或未创建 `local.properties`
+- `compileSdk 34 not found` → 未通过 SDK Manager 安装 Android 14 (API 34)
+- `Java version mismatch` → JDK 版本不是 17，需安装 JDK 17 并设置 `JAVA_HOME`
+
 ### 4. 安装与配置
 
 ```bash
-# 安装到 TV（需 ADB 连接）
+# 安装到 TV（需 ADB 连接 TV，TV 和电脑在同一局域网）
+adb connect <tv-ip>:5555
 adb install app/build/outputs/apk/debug/app-debug.apk
 ```
 
-1. 打开 App，授予摄像头权限
-2. 浏览器访问 `http://<tv-ip>:8080/`
-3. 进入「设置」页，填写 ArcSoft `APP_ID` / `SDK_KEY`
-4. （可选）配置米家全景摄像头：go2rtc URL、账号、密码
-5. （可选）配置 memory-agent 节点池地址
-6. 回到首页，注册人脸，开始使用
+**首次配置：**
+
+1. 在 TV 上打开 App，授予**摄像头权限**和**悬浮窗权限**
+2. 查看 TV 的局域网 IP（在 App 首页或 TV 系统设置中查看）
+3. 在电脑/手机浏览器访问 `http://<tv-ip>:8080/`
+4. 进入「系统设置」页（顶部导航栏切换），填写 ArcSoft `APP_ID` / `SDK_KEY`，保存
+5. 重启 App（使引擎重新激活），确认识别功能正常
+6. （可选）在设置页配置米家全景摄像头：go2rtc URL、账号、密码，启用后自动热生效
+7. （可选）配置 memory-agent 节点池地址，接入人脸节点池
+8. 回到「人脸管理」页，注册人脸，开始使用
+
+> **提示**：App 启动后会在 TV 通知栏显示常驻通知（前台服务保活），请勿划掉。
 
 ---
 
