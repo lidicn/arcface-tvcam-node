@@ -156,8 +156,15 @@ public class TvMainActivity extends FragmentActivity {
         super.onResume();
         RecognitionState.get().register(recognitionListener);
         refreshFaceCount();
-        // 重新打开 App（如从熄屏恢复）时主动拉起相机，避免依赖 SCREEN_ON 广播
-        if (mFaceServiceBound && mBinder != null) mBinder.startCamera();
+        // 重新打开 App（从熄屏恢复 / 从 RegisterActivity 返回）时：
+        // 1) 主动拉起相机；2) 重新绑定预览 SurfaceTexture
+        //    （RegisterActivity 抢占摄像头后原预览会话失效，不重绑会定格在最后一帧）
+        if (mFaceServiceBound && mBinder != null) {
+            mBinder.startCamera();
+            if (cameraFragment != null) {
+                cameraFragment.attachService(mBinder);
+            }
+        }
     }
 
     @Override
