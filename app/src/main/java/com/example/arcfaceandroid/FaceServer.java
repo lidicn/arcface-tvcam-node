@@ -48,6 +48,15 @@ public class FaceServer {
     /** 最近一次 init 失败的详细信息（供 UI / 日志诊断）。 */
     public static String lastInitError = "";
 
+    /** 当前引擎检测模式（VIDEO=自带跟踪，IMAGE=单帧检测）。用于诊断和自动回退。 */
+    public static volatile DetectMode currentDetectMode = DetectMode.ASF_DETECT_MODE_IMAGE;
+
+    /** VIDEO 模式连续检测失败的帧数。超过阈值则自动回退到 IMAGE 模式。 */
+    private static int videoModeFailCount = 0;
+
+    /** VIDEO 模式自动回退阈值：连续 N 帧 detectFaces 返回 0（且画面非空）则回退。 */
+    private static final int VIDEO_MODE_FAIL_THRESHOLD = 10;
+
     /** 最近一次识别/注册的诊断信息（供 HTTP 接口返回，便于排查）。 */
     public int lastDetectCode = 0;
     public int lastFaceCount = 0;
@@ -100,10 +109,12 @@ public class FaceServer {
                     return false;
                 }
 
-                // 注意：本机 ArcSoft SDK 在 ASF_DETECT_MODE_VIDEO 下 detectFaces 持续返回 0（已实测，
-                // 相机/引擎/人脸库均正常，仅检测失效），故回退 IMAGE 模式（检测正常）。
-                // 多人跨帧稳定性改由 RecognitionState 共识 + 中心距离聚类实现（faceId 不稳定时自动回退），
-                // 不再依赖引擎 faceId（阶段 M5 的 faceId 跟踪降级为可选增强，待 SDK 支持再启用）。
+                // 注意：本机 ArcSoft SDK（ArcFace 3.0 Android）在 ASF_DETECT_MODE_VIDEO 下
+                // detectFaces 持续返回 0（已实测验证：VIDEO 模式初始化成功，但连续 10+ 帧检测为空，
+                // 自动回退到 IMAGE 模式后检测正常）。故默认使用 IMAGE 模式。
+                // VIDEO 模式的自带人脸跟踪（faceId 连续）不可用，跨帧关联由 RecognitionState
+                // 的位置距离 + 特征余弦相似度加权匹配实现（已实现，效果足够稳定）。
+                // 如未来升级 SDK 版本验证 VIDEO 模式可用，可改回 ASF_DETECT_MODE_VIDEO。
                 int engineCode = faceEngine.init(context,
                         DetectMode.ASF_DETECT_MODE_IMAGE,
                         DetectFaceOrientPriority.ASF_OP_ALL_OUT,
@@ -111,6 +122,9 @@ public class FaceServer {
                         FaceEngine.ASF_FACE_RECOGNITION | FaceEngine.ASF_FACE_DETECT);
                 if (engineCode == ErrorInfo.MOK) {
                     lastInitError = "";
+                    currentDetectMode = DetectMode.ASF_DETECT_MODE_IMAGE;
+                    videoModeFailCount = 0;
+                    Log.i(TAG, "Engine initialized in IMAGE mode (VIDEO mode unsupported on this SDK version)");
                     initFaceList(context);
                     return true;
                 } else {
@@ -140,6 +154,35 @@ public class FaceServer {
                 faceEngine.unInit();
                 faceEngine = null;
             }
+        }
+    }
+
+    /** VIDEO 模式检测失效时自动回退到 IMAGE 模式。在 doRecognize 中被调用。
+     *  注意：unInit 会清空内存中的人脸库，必须重新调用 initFaceList 加载。 */
+    private void fallbackToImageMode() {
+        if (faceEngine != null) {
+            faceEngine.unInit();
+            faceEngine = null;
+        }
+        if (faceRegisterInfoList != null) {
+            faceRegisterInfoList.clear();
+            faceRegisterInfoList = null;
+        }
+        faceEngine = new FaceEngine();
+        int code = faceEngine.init(appCtx,
+                DetectMode.ASF_DETECT_MODE_IMAGE,
+                DetectFaceOrientPriority.ASF_OP_ALL_OUT,
+                4, 10,
+                FaceEngine.ASF_FACE_RECOGNITION | FaceEngine.ASF_FACE_DETECT);
+        if (code == ErrorInfo.MOK) {
+            currentDetectMode = DetectMode.ASF_DETECT_MODE_IMAGE;
+            videoModeFailCount = 0;
+            initFaceList(appCtx);
+            Log.i(TAG, "Fallback to IMAGE mode successful, face library reloaded");
+        } else {
+            Log.e(TAG, "Fallback to IMAGE mode failed, code=" + code);
+            faceEngine.unInit();
+            faceEngine = null;
         }
     }
 
@@ -624,6 +667,29 @@ public class FaceServer {
             lastDetMs = System.currentTimeMillis() - t0;
             lastDetectCode = code;
             lastFaceCount = faceInfoList.size();
+
+            // VIDEO 模式自动回退：连续 N 帧 detectFaces 返回空（code=MOK 但 list 为空），
+            // 说明 VIDEO 模式在当前设备/SDK 上检测失效，自动回退到 IMAGE 模式。
+            // 注意：VIDEO 模式前几帧可能返回空（需积累上下文），故设阈值为 10 帧。
+            if (currentDetectMode == DetectMode.ASF_DETECT_MODE_VIDEO
+                    && code == ErrorInfo.MOK && faceInfoList.isEmpty()) {
+                videoModeFailCount++;
+                Log.w(TAG, "VIDEO mode detect empty frame #" + videoModeFailCount
+                        + "/" + VIDEO_MODE_FAIL_THRESHOLD);
+                if (videoModeFailCount >= VIDEO_MODE_FAIL_THRESHOLD) {
+                    Log.e(TAG, "VIDEO mode consistently returns empty, falling back to IMAGE mode");
+                    fallbackToImageMode();
+                    // 回退后用 IMAGE 模式重新检测当前帧
+                    faceInfoList = new ArrayList<>();
+                    code = faceEngine.detectFaces(data, w, h, format, faceInfoList);
+                    lastDetectCode = code;
+                    lastFaceCount = faceInfoList.size();
+                }
+            } else if (!faceInfoList.isEmpty()) {
+                // 检测到人脸，重置失败计数
+                videoModeFailCount = 0;
+            }
+
             if (code != ErrorInfo.MOK || faceInfoList.isEmpty()) return results;
 
             for (FaceInfo fi : faceInfoList) {

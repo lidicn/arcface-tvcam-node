@@ -614,6 +614,9 @@ public class FaceHttpServer {
         JSONObject o = new JSONObject();
         o.put("status","ok"); o.put("engine","ArcSoft ArcFace 3.0 (Android)");
         o.put("registered",faceServer.getFaceNumber()); o.put("port",port);
+        // 当前检测模式：VIDEO=自带跟踪(faceId连续)，IMAGE=单帧检测(faceId=-1)
+        o.put("detect_mode", FaceServer.currentDetectMode == com.arcsoft.face.enums.DetectMode.ASF_DETECT_MODE_VIDEO ? "VIDEO" : "IMAGE");
+        o.put("engine_ready", faceServer.isEngineReady());
         return o.toString();
     }
 

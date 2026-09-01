@@ -29,6 +29,7 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.arcfaceandroid.FaceServer.RecognizeResult;
+import com.example.arcfaceandroid.RecognitionOptimizer;
 
 import android.os.Environment;
 
@@ -387,10 +388,27 @@ public class FaceServerService extends Service {
         if (w <= 0 || h <= 0) return;
         long t0 = System.currentTimeMillis();
 
+        // P1-1: 光照预处理（暗光增强）：原地修改 nv21，提升暗光场景小脸检测率
+        RecognitionOptimizer.get().enhanceLowLight(nv21, w, h);
+
+        // P2-3: 运动检测（帧差法）：提取运动区域，辅助 ROI（无热点时用运动区域作为检测范围）
+        Rect motionRegion = RecognitionOptimizer.get().detectMotion(nv21, w, h);
+
         analyzeFrameCount++;
         HotspotManager hs = HotspotManager.get();
         boolean useRoi = hs.hasHotspots();
         List<Rect> rois = useRoi ? hs.toPixelRois(w, h) : null;
+
+        // 无热点但有运动区域时，用运动区域作为 ROI（减少全图扫描开销）
+        if (!useRoi && motionRegion != null) {
+            int mx1 = motionRegion.left * w / 10000;
+            int my1 = motionRegion.top * h / 10000;
+            int mx2 = motionRegion.right * w / 10000;
+            int my2 = motionRegion.bottom * h / 10000;
+            rois = new ArrayList<>();
+            rois.add(new Rect(mx1, my1, mx2, my2));
+            useRoi = true;
+        }
 
         boolean fullScan;
         if (!useRoi || rois == null || rois.isEmpty()) {
@@ -459,6 +477,10 @@ public class FaceServerService extends Service {
                     featCalls++;
                 }
                 results.add(rr);
+                // P1-2: 自适应阈值更新：匹配成功时记录相似度，动态调整匹配阈值
+                if (rr.name != null && !rr.name.equals("未知") && rr.score > 0.5f) {
+                    RecognitionOptimizer.get().updateSimilarity(rr.score);
+                }
             }
         }
 

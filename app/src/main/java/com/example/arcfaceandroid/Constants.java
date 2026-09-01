@@ -83,4 +83,44 @@ public final class Constants {
     public static final int HOTSPOT_FULL_SCAN_EVERY = 6;
     public static final int HOTSPOT_ROI_NOFACE_FULL = 8;
     public static final int HOTSPOT_FULL_BURST_FRAMES = 6;
+
+    // ===== P1 单人识别优化 =====
+    /** 光照预处理：暗光阈值（平均亮度 < 此值时触发增强），0-255 */
+    public static final int LOW_LIGHT_THRESHOLD = 70;
+    /** 光照预处理：伽马校正系数（暗光时用 <1.0 提亮） */
+    public static final float LOW_LIGHT_GAMMA = 0.7f;
+    /** 自适应阈值：历史相似度窗口大小 */
+    public static final int ADAPTIVE_THRESHOLD_WINDOW = 10;
+    /** 自适应阈值：相对历史平均的偏移量（阈值 = 平均 - 偏移） */
+    public static final float ADAPTIVE_THRESHOLD_OFFSET = 0.08f;
+    /** 自适应阈值：最低阈值（不会低于此值） */
+    public static final float ADAPTIVE_THRESHOLD_MIN = 0.65f;
+    /** 模板质量：注册时最小人脸边长（低于此值拒绝注册） */
+    public static final int REGISTER_MIN_FACE_PX = 80;
+    /** 模板质量：注册时最大人脸角度（偏转 > 此值拒绝注册），度 */
+    public static final float REGISTER_MAX_ANGLE = 30f;
+
+    // ===== P2 多人识别优化 =====
+    /** 匈牙利算法：启用人数阈值（>= 此人数时用匈牙利，否则用贪心） */
+    public static final int HUNGARIAN_MIN_FACES = 3;
+    /** 人体 ReID：衣着颜色直方图 bins 数 */
+    public static final int REID_COLOR_BINS = 16;
+    /** 人体 ReID：衣着区域占人脸框的比例（向下扩展人体区域） */
+    public static final float REID_BODY_RATIO = 2.5f;
+    /** 人体 ReID：颜色相似度权重（与位置/特征加权） */
+    public static final float REID_COLOR_WEIGHT = 0.15f;
+    /** 运动检测：帧差阈值（像素差 > 此值视为运动），0-255 */
+    public static final int MOTION_PIXEL_THRESHOLD = 25;
+    /** 运动检测：运动区域最小面积（占画面比例） */
+    public static final float MOTION_MIN_AREA_RATIO = 0.005f;
+    /** 运动检测：ROI 扩边比例（运动区域外扩） */
+    public static final float MOTION_ROI_PAD = 0.4f;
+
+    // ===== P3 架构优化 =====
+    /** 异步流水线：检测线程池大小 */
+    public static final int PIPELINE_THREADS = 2;
+    /** 热点 ROI 动态调整：移动速度阈值（px/帧），超过则扩大 ROI */
+    public static final float HOTSPOT_SPEED_THRESHOLD = 15f;
+    /** 热点 ROI 动态调整：高速移动时的额外扩边 */
+    public static final float HOTSPOT_SPEED_PAD = 0.3f;
 }
