@@ -11,8 +11,13 @@
     font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   }
   .container { max-width: 960px; margin: 0 auto; padding: 20px; }
-  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .header-left { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
   h1 { font-size: 20px; margin: 0; }
+  .nav { display: flex; gap: 8px; }
+  .nav a { color: #8a93a6; text-decoration: none; font-size: 14px; padding: 6px 12px; border-radius: 8px; border: 1px solid #2c3550; }
+  .nav a:hover { color: #e6e9ef; border-color: #4a5a8a; }
+  .nav a.active { color: #fff; background: #2a6df4; border-color: #2a6df4; }
   h2 { font-size: 15px; margin: 0 0 10px; color: #aab2c5; }
   .status { font-size: 13px; padding: 4px 10px; border-radius: 999px; background: #1c2333; color: #8a93a6; }
   .status.ok { color: #6ee7a8; }
@@ -40,7 +45,13 @@
 <body>
 <div class="container">
   <header>
-    <h1>ArcFace 人脸注册管理</h1>
+    <div class="header-left">
+      <h1>ArcFace 人脸注册管理</h1>
+      <div class="nav">
+        <a href="/" class="active">人脸管理</a>
+        <a href="/settings.html">系统设置</a>
+      </div>
+    </div>
     <div id="status" class="status">连接中…</div>
   </header>
 
