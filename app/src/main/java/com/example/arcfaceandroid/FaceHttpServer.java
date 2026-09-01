@@ -205,6 +205,17 @@ public class FaceHttpServer {
                             statusCode = 200; respBody = jsonHealth();
                         } else { statusCode = 405; respBody = err("method not allowed"); }
                         break;
+                    case "/api/stats":
+                        if ("GET".equalsIgnoreCase(method)) {
+                            // P3-3: 识别质量统计（识别率、平均相似度、匹配次数、自适应阈值等）
+                            statusCode = 200;
+                            respBody = RecognitionState.get().getStatsJson();
+                        } else if ("DELETE".equalsIgnoreCase(method)) {
+                            // 重置统计信息
+                            RecognitionState.get().resetStats();
+                            statusCode = 200; respBody = "{\"success\":true,\"message\":\"stats reset\"}";
+                        } else { statusCode = 405; respBody = err("method not allowed"); }
+                        break;
                     case "/api/config":
                         if ("GET".equalsIgnoreCase(method)) {
                             // 读取配置：密码字段返回掩码（********），不暴露明文

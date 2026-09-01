@@ -74,6 +74,28 @@
     <div id="grid" class="grid"></div>
     <div id="empty" class="empty">暂无注册人脸</div>
   </section>
+
+  <section class="card">
+    <div class="row between">
+      <h2>识别质量监控（P3-3）</h2>
+      <button id="resetStats" style="background:#555;font-size:12px;padding:6px 12px;">重置统计</button>
+    </div>
+    <div id="statsGrid" class="grid" style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); margin-bottom: 12px;">
+      <div class="face"><div class="fname" style="color:#6ee7a8;font-size:20px;" id="statDetectionRate">--</div><div style="color:#8a93a6;font-size:12px;">人脸检测率</div></div>
+      <div class="face"><div class="fname" style="color:#6ee7a8;font-size:20px;" id="statMatchRate">--</div><div style="color:#8a93a6;font-size:12px;">识别匹配率</div></div>
+      <div class="face"><div class="fname" style="color:#6ee7a8;font-size:20px;" id="statAvgSim">--</div><div style="color:#8a93a6;font-size:12px;">平均相似度</div></div>
+      <div class="face"><div class="fname" style="color:#6ee7a8;font-size:20px;" id="statAdaptiveTh">--</div><div style="color:#8a93a6;font-size:12px;">自适应阈值</div></div>
+      <div class="face"><div class="fname" style="color:#6ee7a8;font-size:20px;" id="statTracks">--</div><div style="color:#8a93a6;font-size:12px;">当前轨迹数</div></div>
+      <div class="face"><div class="fname" style="color:#6ee7a8;font-size:20px;" id="statMode">--</div><div style="color:#8a93a6;font-size:12px;">检测模式</div></div>
+    </div>
+    <div class="row" style="color:#8a93a6;font-size:12px;">
+      <span>总帧数: <b id="statTotalFrames">--</b></span>
+      <span>有人脸帧: <b id="statFramesWithFace">--</b></span>
+      <span>匹配成功: <b id="statMatched">--</b></span>
+      <span>未匹配: <b id="statUnknown">--</b></span>
+      <span>最近匹配: <b id="statLastMatch">--</b></span>
+    </div>
+  </section>
 </div>
 
 <script>
@@ -175,6 +197,31 @@
   health();
   loadFaces();
   setInterval(loadFaces, 3000);
+
+  // P3-3: 识别质量监控
+  async function loadStats() {
+    try {
+      const res = await fetch('/api/stats');
+      const j = await res.json();
+      $('statDetectionRate').textContent = (j.detection_rate * 100).toFixed(1) + '%';
+      $('statMatchRate').textContent = (j.match_rate * 100).toFixed(1) + '%';
+      $('statAvgSim').textContent = j.avg_similarity.toFixed(3);
+      $('statAdaptiveTh').textContent = j.adaptive_threshold.toFixed(3);
+      $('statTracks').textContent = j.current_tracks;
+      $('statMode').textContent = j.detect_mode;
+      $('statTotalFrames').textContent = j.total_frames;
+      $('statFramesWithFace').textContent = j.frames_with_face;
+      $('statMatched').textContent = j.matched_count;
+      $('statUnknown').textContent = j.unknown_count;
+      const ago = j.last_match_ago_ms;
+      $('statLastMatch').textContent = ago < 0 ? '从未' : (ago < 1000 ? ago + 'ms前' : (ago / 1000).toFixed(1) + 's前');
+    } catch (e) { /* 忽略统计刷新错误 */ }
+  }
+  $('resetStats').onclick = async () => {
+    try { await fetch('/api/stats', { method: 'DELETE' }); msg('统计已重置', true); } catch (e) { msg('重置失败', false); }
+  };
+  loadStats();
+  setInterval(loadStats, 2000);
 </script>
 </body>
 </html>

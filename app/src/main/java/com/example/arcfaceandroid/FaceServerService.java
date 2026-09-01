@@ -481,6 +481,14 @@ public class FaceServerService extends Service {
                 if (rr.name != null && !rr.name.equals("未知") && rr.score > 0.5f) {
                     RecognitionOptimizer.get().updateSimilarity(rr.score);
                 }
+                // P2-2: 提取衣着颜色直方图（人体 ReID），用于跨帧关联辅助
+                if (rr.rect != null && rr.rect.width() > 20) {
+                    try {
+                        rr.colorHist = RecognitionOptimizer.extractColorHistogram(nv21, w, h, rr.rect);
+                    } catch (Exception e) {
+                        // 颜色直方图提取失败不影响主流程
+                    }
+                }
             }
         }
 

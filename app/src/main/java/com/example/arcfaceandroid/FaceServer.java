@@ -279,7 +279,7 @@ public class FaceServer {
         if (ROOT_PATH == null) return false;
         FaceFeature ff = new FaceFeature();
         ff.setFeatureData(feature);
-        return persistFeature(ff, null, name);
+        return persistFeature(ff, null, name, 0.5f); // 外部传入特征，默认质量 0.5
     }
 
     public int clearAllFaces(Context context) {
@@ -433,7 +433,10 @@ public class FaceServer {
 
         String userName = (name == null || name.isEmpty())
                 ? String.valueOf(System.currentTimeMillis()) : name;
-        boolean saved = persistFeature(feature, disp, userName);
+        // P1-3: 计算模板质量分数（人脸越大质量越高，>=112px 质量为 1.0）
+        int faceSize = r != null ? Math.max(r.width(), r.height()) : 80;
+        float quality = Math.min(1.0f, Math.max(0.3f, faceSize / 112.0f));
+        boolean saved = persistFeature(feature, disp, userName, quality);
         if (disp != null) disp.recycle();
         return saved;
     }
@@ -496,7 +499,10 @@ public class FaceServer {
             return false;
         }
         String userName = (name == null || name.isEmpty()) ? String.valueOf(System.currentTimeMillis()) : name;
-        boolean ok = persistFeature(faceFeature, disp, userName);
+        // P1-3: 计算模板质量分数（人脸越大质量越高，>=112px 质量为 1.0）
+        int bmpFaceSize = r != null ? Math.max(r.width(), r.height()) : 80;
+        float bmpQuality = Math.min(1.0f, Math.max(0.3f, bmpFaceSize / 112.0f));
+        boolean ok = persistFeature(faceFeature, disp, userName, bmpQuality);
         if (disp != null && disp != bmp) disp.recycle();
         bmp.recycle();
         return ok;
@@ -536,8 +542,9 @@ public class FaceServer {
         return (code == ErrorInfo.MOK) ? ff : null;
     }
 
-    /** 持久化特征与注册照（提取/检测已在外完成）。displayBmp 可为 null（仅存特征）。 */
-    private boolean persistFeature(FaceFeature feature, Bitmap displayBmp, String userName) {
+    /** 持久化特征与注册照（提取/检测已在外完成）。displayBmp 可为 null（仅存特征）。
+     *  P1-3: quality 为模板质量分数（0-1），根据注册时人脸大小/角度计算。 */
+    private boolean persistFeature(FaceFeature feature, Bitmap displayBmp, String userName, float quality) {
         if (ROOT_PATH == null) return false;
         try {
             File featureDir = new File(ROOT_PATH + File.separator + SAVE_FEATURE_DIR);
@@ -558,7 +565,7 @@ public class FaceServer {
             }
 
             if (faceRegisterInfoList == null) faceRegisterInfoList = new ArrayList<>();
-            faceRegisterInfoList.add(new FaceRegisterInfo(feature.getFeatureData(), userName));
+            faceRegisterInfoList.add(new FaceRegisterInfo(feature.getFeatureData(), userName, quality));
             // 每人模板数上限：超出则淘汰最旧一条，避免无限增长
             if (faceRegisterInfoList.size() > 1) {
                 int oldestIdx = -1;
@@ -849,25 +856,34 @@ public class FaceServer {
         return h > 0 ? fileName.substring(0, h) : fileName;
     }
 
-    /** 在人脸库找出最相似的一条（多模板时即为该人最佳姿态/距离模板，姓名仍按展示名）。 */
+    /** 在人脸库找出最相似的一条（多模板时即为该人最佳姿态/距离模板，姓名仍按展示名）。
+     *  P1-3: 模板质量加权——高质量模板（大脸、正面、清晰）的相似度权重更高，
+     *  最终分数 = rawSimilarity * (0.7 + 0.3 * quality)，避免低质量模板干扰匹配。 */
     private CompareResult getTopOfFaceLib(FaceFeature faceFeature) {
         if (faceEngine == null || isProcessing || faceRegisterInfoList == null || faceRegisterInfoList.isEmpty())
             return null;
         FaceFeature temp = new FaceFeature();
         FaceSimilar similar = new FaceSimilar();
-        float maxSimilar = 0;
+        float maxWeighted = 0;
+        float maxRaw = 0;
         int maxIdx = -1;
         isProcessing = true;
         for (int i = 0; i < faceRegisterInfoList.size(); i++) {
             temp.setFeatureData(faceRegisterInfoList.get(i).getFeatureData());
             faceEngine.compareFaceFeature(faceFeature, temp, similar);
-            if (similar.getScore() > maxSimilar) {
-                maxSimilar = similar.getScore();
+            float raw = similar.getScore();
+            // P1-3: 质量加权（quality=0.5 时权重=0.85，quality=1.0 时权重=1.0，quality=0 时权重=0.7）
+            float quality = faceRegisterInfoList.get(i).getQuality();
+            float weighted = raw * (0.7f + 0.3f * quality);
+            if (weighted > maxWeighted) {
+                maxWeighted = weighted;
+                maxRaw = raw;
                 maxIdx = i;
             }
         }
         isProcessing = false;
-        return maxIdx != -1 ? new CompareResult(faceRegisterInfoList.get(maxIdx).getName(), maxSimilar) : null;
+        // 返回原始相似度（用于显示和阈值判断），内部用加权分排序
+        return maxIdx != -1 ? new CompareResult(faceRegisterInfoList.get(maxIdx).getName(), maxRaw) : null;
     }
 
     // ---- 工具 ----
@@ -881,6 +897,8 @@ public class FaceServer {
         public int faceId = -1;
         /** 特征向量（512维 float），用于跨帧 ReID 关联。可能为 null（提取失败时）。 */
         public float[] feature = null;
+        /** P2-2: 衣着颜色直方图（32维 float，U/V 各 16 bins），用于人体 ReID 辅助跟踪。可能为 null。 */
+        public float[] colorHist = null;
     }
 
     /** 将 ArcSoft FaceFeature 的 byte[] 特征转换为 float[]（用于余弦相似度计算）。 */
