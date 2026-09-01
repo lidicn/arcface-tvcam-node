@@ -1,0 +1,2 @@
+-keep class com.arcsoft.** { *; }
+-dontwarn com.arcsoft.**

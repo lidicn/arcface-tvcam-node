@@ -1,0 +1,38 @@
+<resources>
+    <!-- Material Components 主题：BottomNavigationView / Material 控件必须运行在 Material 主题下，
+         否则 inflate 时找不到 ?attr/colorPrimarySurface 等属性而崩溃 -->
+    <style name="Theme.ArcFace" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- 主色 -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryVariant">@color/colorPrimaryDark</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+
+        <!-- 次色（强调色） -->
+        <item name="colorSecondary">@color/colorAccent</item>
+        <item name="colorOnSecondary">@android:color/white</item>
+
+        <!-- 表面色（BottomNavigationView 背景用到 ?attr/colorSurface） -->
+        <item name="colorSurface">@color/bg_card</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+
+        <!-- 背景 -->
+        <item name="android:colorBackground">@color/bg_dark</item>
+        <item name="colorOnBackground">@color/text_primary</item>
+
+        <!-- 状态栏 -->
+        <item name="android:statusBarColor">@color/colorPrimaryDark</item>
+    </style>
+
+    <!-- 电视遥控器可聚焦卡片按钮 -->
+    <style name="TvCardButton" parent="Widget.AppCompat.Button">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">64dp</item>
+        <item name="android:layout_marginBottom">14dp</item>
+        <item name="android:background">@drawable/bg_focus_card</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:gravity">center_vertical|start</item>
+        <item name="android:paddingStart">18dp</item>
+        <item name="android:focusable">true</item>
+    </style>
+</resources>

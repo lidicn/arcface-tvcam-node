@@ -1,0 +1,21 @@
+<resources>
+    <!-- 主题色 -->
+    <color name="colorPrimary">#1976D2</color>
+    <color name="colorPrimaryDark">#1565C0</color>
+    <color name="colorAccent">#FF5722</color>
+
+    <!-- 识别框颜色 -->
+    <color name="box_matched">#4CAF50</color>   <!-- 绿色 = 匹配成功 -->
+    <color name="box_unknown">#F44336</color>    <!-- 红色 = 未知 -->
+    <color name="box_detecting">#FFC107</color>  <!-- 黄色 = 检测中 -->
+
+    <!-- 背景 -->
+    <color name="bg_dark">#121212</color>
+    <color name="bg_card">#1E1E1E</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#B3B3B3</color>
+
+    <!-- 通用 -->
+    <color name="purple_500">#FF6200EE</color>
+    <color name="teal_200">#FF03DAC5</color>
+</resources>

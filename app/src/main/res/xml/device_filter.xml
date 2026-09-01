@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- UVC 设备过滤：Video 类(0x0E) + Video Control 子类(0x01)。
+         这样插上免驱 UVC 摄像头时系统会向本应用请求 USB 权限。 -->
+    <usb-device class="14" subclass="1" />
+    <!-- 如有特定摄像头的 vid/pid，可在此追加，例如：
+    <usb-device vendor-id="1234" product-id="5678" />
+    -->
+</resources>

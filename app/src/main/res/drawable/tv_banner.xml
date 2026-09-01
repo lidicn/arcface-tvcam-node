@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+    <path
+        android:fillColor="#0B0F14"
+        android:pathData="M0,0h320v180H0z" />
+    <!-- 摄像头镜头装饰 -->
+    <path
+        android:fillColor="#00E5D4"
+        android:pathData="M160,62m-34,0a34,34 0,1 1,68 0a34,34 0,1 1,-68 0" />
+    <path
+        android:fillColor="#0B0F14"
+        android:pathData="M160,62m-16,0a16,16 0,1 1,32 0a16,16 0,1 1,-32 0" />
+    <path
+        android:fillColor="#1DE9B6"
+        android:pathData="M160,40 L172,52 L148,52 Z" />
+    <!-- 底部科技感横线 -->
+    <path
+        android:fillColor="#10242B"
+        android:pathData="M40,128h240v6H40z" />
+    <path
+        android:fillColor="#00E5D4"
+        android:pathData="M40,128h120v6H40z" />
+</vector>

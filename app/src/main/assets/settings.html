@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ArcFace 系统设置</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #0f1320; color: #e6e9ef;
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  .container { max-width: 860px; margin: 0 auto; padding: 20px; }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  h1 { font-size: 20px; margin: 0; }
+  .nav { display: flex; gap: 10px; }
+  .nav a { color: #8a93a6; text-decoration: none; font-size: 14px; padding: 6px 12px; border-radius: 8px; border: 1px solid #2c3550; }
+  .nav a:hover { color: #e6e9ef; border-color: #4a5a8a; }
+  .nav a.active { color: #fff; background: #2a6df4; border-color: #2a6df4; }
+  .status { font-size: 13px; padding: 4px 10px; border-radius: 999px; background: #1c2333; color: #8a93a6; }
+  .status.ok { color: #6ee7a8; }
+  .status.err { color: #ff8b8b; }
+  .card { background: #171c2b; border: 1px solid #232b40; border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+  .card h2 { font-size: 15px; margin: 0 0 14px; color: #aab2c5; display: flex; align-items: center; gap: 8px; }
+  .card h2 .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #2a6df4; color: #fff; font-weight: normal; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .row:last-child { margin-bottom: 0; }
+  .field { flex: 1 1 240px; min-width: 200px; }
+  .field.full { flex: 1 1 100%; }
+  label { display: block; font-size: 13px; color: #8a93a6; margin-bottom: 5px; }
+  label .hint { color: #5a6478; font-size: 11px; margin-left: 6px; }
+  input[type=text], input[type=password], input[type=number], select {
+    width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid #2c3550;
+    background: #0f1320; color: #e6e9ef; font-size: 14px;
+  }
+  input:focus { outline: none; border-color: #2a6df4; }
+  input:disabled { opacity: 0.5; }
+  .switch-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .switch-row label { margin: 0; cursor: pointer; font-size: 14px; color: #cdd3e0; }
+  .switch { position: relative; width: 44px; height: 24px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; inset: 0; background: #2c3550; border-radius: 24px; transition: .2s; }
+  .slider:before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+  input:checked + .slider { background: #2a6df4; }
+  input:checked + .slider:before { transform: translateX(20px); }
+  .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+  button { padding: 10px 20px; border-radius: 10px; border: 1px solid #2c3550; background: #2a6df4; color: #fff; font-size: 14px; cursor: pointer; }
+  button:hover { filter: brightness(1.08); }
+  button.secondary { background: transparent; color: #cdd3e0; }
+  button.danger { background: #c0392b; border-color: #c0392b; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .msg { margin-top: 12px; font-size: 13px; min-height: 18px; }
+  .msg.ok { color: #6ee7a8; }
+  .msg.err { color: #ff8b8b; }
+  .pass-note { font-size: 11px; color: #5a6478; margin-top: 4px; }
+  .section-desc { font-size: 12px; color: #5a6478; margin: -8px 0 14px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>ArcFace 系统设置</h1>
+    <div class="nav">
+      <a href="/">人脸管理</a>
+      <a href="/settings.html" class="active">系统设置</a>
+    </div>
+    <div id="status" class="status">连接中…</div>
+  </header>
+
+  <!-- ArcSoft 密钥 -->
+  <section class="card">
+    <h2>ArcSoft 引擎密钥 <span class="badge">必填</span></h2>
+    <p class="section-desc">在虹软视觉开放平台为包名 <code>com.example.arcfaceandroid</code> 申请。首次激活需联网，激活后可离线使用。密钥为空时人脸识别不可用（App 仍可安装运行）。</p>
+    <div class="row">
+      <div class="field">
+        <label>APP_ID</label>
+        <input id="arcsoft_app_id" type="text" placeholder="从 ArcSoft 控制台获取" />
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>SDK_KEY</label>
+        <input id="arcsoft_sdk_key" type="password" placeholder="从 ArcSoft 控制台获取" />
+        <div class="pass-note">显示 ******** 表示已配置；修改后保存生效，需重启 App 重新激活引擎。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 米家全景摄像头 -->
+  <section class="card">
+    <h2>第二路摄像头：米家全景（go2rtc）</h2>
+    <p class="section-desc">通过 go2rtc HTTP API 取帧，作为 TV 单摄的补充（高位广角补漏检）。frame.jpeg 单帧延迟约 4-13 秒，仅用于"谁在房间"判定，不画预览框。</p>
+    <div class="switch-row">
+      <div class="switch"><input type="checkbox" id="pano_enabled"><span class="slider"></span></div>
+      <label for="pano_enabled">启用米家全景第二路</label>
+    </div>
+    <div class="row">
+      <div class="field full">
+        <label>go2rtc 取帧 URL <span class="hint">frame.jpeg 或 stream.mjpeg</span></label>
+        <input id="pano_url" type="text" placeholder="http://192.168.1.100:1984/api/frame.jpeg?src=living_room" />
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>go2rtc 账号</label>
+        <input id="pano_user" type="text" placeholder="API username" />
+      </div>
+      <div class="field">
+        <label>go2rtc 密码</label>
+        <input id="pano_pass" type="password" placeholder="API password" />
+        <div class="pass-note">留空表示不修改当前密码；输入 __CLEAR__ 可清空。</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>轮询间隔 (ms)</label>
+        <input id="pano_poll_ms" type="number" min="500" step="100" value="1500" />
+      </div>
+      <div class="field">
+        <label>取帧超时 (ms)</label>
+        <input id="pano_fetch_timeout_ms" type="number" min="3000" step="1000" value="15000" />
+      </div>
+      <div class="field">
+        <label>下采样最大宽度 (px)</label>
+        <input id="pano_max_w" type="number" min="640" step="128" value="1280" />
+      </div>
+    </div>
+  </section>
+
+  <!-- memory-agent 节点池 -->
+  <section class="card">
+    <h2>memory-agent 人脸节点池</h2>
+    <p class="section-desc">注册到 memory-agent 后，可通过统一 /face/recognize 入口调用本机识别，并自动下行同步中央人脸库。基址为空时 TV 端独立运行，不接入节点池。</p>
+    <div class="row">
+      <div class="field full">
+        <label>memory-agent 基址</label>
+        <input id="memory_agent_base" type="text" placeholder="http://192.168.1.100:8086（留空则独立运行）" />
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>节点 ID</label>
+        <input id="node_id" type="text" placeholder="tv-livingroom" />
+      </div>
+      <div class="field">
+        <label>节点类型</label>
+        <select id="node_type">
+          <option value="tv">tv（电视，权重低）</option>
+          <option value="phone">phone（手机，权重高）</option>
+          <option value="nas">nas（NAS 常驻）</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field full">
+        <label>本机对外端点 <span class="hint">memory-agent 回调 /face/recognize 用</span></label>
+        <input id="node_endpoint" type="text" placeholder="http://192.168.1.200:8080" />
+      </div>
+    </div>
+  </section>
+
+  <!-- 识别参数 -->
+  <section class="card">
+    <h2>识别参数</h2>
+    <div class="row">
+      <div class="field">
+        <label>识别相似度阈值 <span class="hint">生活照 0.80，证件照 0.82</span></label>
+        <input id="match_threshold" type="number" min="0.5" max="1.0" step="0.01" value="0.80" />
+      </div>
+    </div>
+    <div class="switch-row">
+      <div class="switch"><input type="checkbox" id="hotspot_enabled" checked><span class="slider"></span></div>
+      <label for="hotspot_enabled">启用热点 ROI 提速（固定座位场景建议开启）</label>
+    </div>
+    <div class="row">
+      <button id="reset_hotspots" class="danger">重置热点学习数据</button>
+      <span style="font-size:12px;color:#5a6478;">换房间/换摄像头位置后使用，清除已学习的人脸常现位置。</span>
+    </div>
+  </section>
+
+  <div class="actions">
+    <button id="reload" class="secondary">重新加载</button>
+    <button id="save">保存设置</button>
+  </div>
+  <div id="msg" class="msg"></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let msgTimer = null;
+function msg(text, ok) {
+  const el = $('msg');
+  el.textContent = text;
+  el.className = 'msg ' + (ok ? 'ok' : 'err');
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => { el.textContent = ''; el.className = 'msg'; }, 5000);
+}
+
+const PASSWORD_FIELDS = ['arcsoft_sdk_key', 'pano_pass'];
+const MASK = '********';
+
+async function loadConfig() {
+  try {
+    const r = await fetch('/api/config');
+    const cfg = await r.json();
+    $('status').textContent = '已连接';
+    $('status').className = 'status ok';
+
+    // 填充所有字段
+    for (const key in cfg) {
+      const el = $(key);
+      if (!el) continue;
+      if (el.type === 'checkbox') {
+        el.checked = !!cfg[key];
+      } else if (PASSWORD_FIELDS.includes(key)) {
+        // 密码字段：如果返回掩码，保留占位提示用户已配置
+        if (cfg[key] === MASK) {
+          el.value = MASK;
+          el.dataset.configured = 'true';
+        } else {
+          el.value = cfg[key] || '';
+          el.dataset.configured = cfg[key] ? 'true' : 'false';
+        }
+      } else {
+        el.value = (cfg[key] !== undefined && cfg[key] !== null) ? cfg[key] : '';
+      }
+    }
+    msg('配置已加载', true);
+  } catch (e) {
+    $('status').textContent = '无法连接服务';
+    $('status').className = 'status err';
+    msg('加载失败：' + e.message, false);
+  }
+}
+
+async function saveConfig() {
+  try {
+    // 收集所有字段
+    const body = {};
+    const fields = document.querySelectorAll('input[id], select[id]');
+    fields.forEach(el => {
+      const key = el.id;
+      if (el.type === 'checkbox') {
+        body[key] = el.checked;
+      } else if (PASSWORD_FIELDS.includes(key)) {
+        // 密码三态：掩码=不改；空=不改；其他=更新
+        if (el.value === MASK || el.value === '') {
+          // 不修改，不传该字段
+        } else {
+          body[key] = el.value;
+        }
+      } else if (el.type === 'number') {
+        const v = parseFloat(el.value);
+        if (!isNaN(v)) body[key] = v;
+      } else {
+        body[key] = el.value;
+      }
+    });
+
+    const r = await fetch('/api/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const j = await r.json();
+    if (j.success) {
+      msg('保存成功，已热生效（变更 ' + j.changed + ' 项）', true);
+      // 重新加载以同步掩码状态
+      setTimeout(loadConfig, 500);
+    } else {
+      msg('保存失败', false);
+    }
+  } catch (e) {
+    msg('保存请求失败：' + e.message, false);
+  }
+}
+
+async function resetHotspots() {
+  if (!confirm('确定重置热点学习数据？已学习的人脸常现位置将被清除，需要重新学习。')) return;
+  try {
+    const r = await fetch('/api/hotspots/reset', { method: 'POST' });
+    const j = await r.json();
+    if (j.reset) {
+      msg('热点已重置（当前 ' + j.hotspots + ' 个）', true);
+    } else {
+      msg('重置失败', false);
+    }
+  } catch (e) {
+    msg('重置请求失败：' + e.message, false);
+  }
+}
+
+$('save').onclick = saveConfig;
+$('reload').onclick = loadConfig;
+$('reset_hotspots').onclick = resetHotspots;
+
+loadConfig();
+</script>
+</body>
+</html>

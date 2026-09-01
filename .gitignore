@@ -1,0 +1,46 @@
+# ===== 构建产物 =====
+build/
+.gradle/
+local.properties
+*.iml
+.idea/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# ===== ArcSoft SDK（禁止再分发，使用者自行下载）=====
+app/libs/*.jar
+app/src/main/jniLibs/**/*.so
+libs/
+samplecode/
+
+# ===== 开发期临时文件 =====
+build_log*.txt
+build_err*.txt
+install_log*.txt
+install_err*.txt
+resp*.txt
+nr_verify_out.txt
+releasenotes.txt
+deploy_*.py
+modify_nr_*.py
+verify_nr*.py
+switch_nr_*.py
+read_nr_*.py
+discover_nr.py
+face_test_client.html
+
+# ===== 文档中的二进制（ArcSoft 版权材料，不进仓库）=====
+doc/*.pdf
+imageutil/
+
+# ===== 系统 =====
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.bak
+
+# 临时部署脚本
+redeploy_*.py
+

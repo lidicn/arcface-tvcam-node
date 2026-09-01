@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+      本 App 是纯局域网设备（TV 摄像头识别 + 本地 HTTP 服务）：
+      targetSdk=34 起 Android 默认禁止明文(HTTP)出站，会导致扫描结果回调
+      POST http://<node-red>:1880/face/result 抛
+      "java.io.IOException: Cleartext HTTP traffic to xxx not permitted"。
+      这里全局放行明文，保证局域网内 HTTP 回调/米家 go2rtc 取帧/memory-agent 节点通信可用。
+      如需收紧，可在 domain-config 中仅放行你的内网网段（如 192.168.1.）。
+    -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

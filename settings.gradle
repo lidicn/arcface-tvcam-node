@@ -1,0 +1,29 @@
+pluginManagement {
+    repositories {
+        google()       // AGP 插件优先从官方拉
+        mavenCentral()
+        gradlePluginPortal()
+        maven { url = uri("https://mirrors.cloud.tencent.com/nexus/repository/maven-public/") }
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        // Google 一方库（CameraX / AndroidX 等）→ 官方源优先
+        google()
+        mavenCentral()
+
+        // 国内镜像作为 fallback（第三方库加速）
+        maven { url = uri("https://mirrors.cloud.tencent.com/AndroidSDK/google_maven2/") }
+        maven { url = uri("https://mirrors.cloud.tencent.com/nexus/repository/maven-public/") }
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
+
+        // UVC 摄像头库（AndroidUSBCamera / AUSBC）托管在 JitPack
+        maven { url = uri("https://jitpack.io") }
+        maven { url = uri("https://mirrors.cloud.tencent.com/nexus/repository/jitpack/") }
+    }
+}
+
+rootProject.name = "Arcface"
+include ':app'

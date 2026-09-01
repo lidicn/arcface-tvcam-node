@@ -1,0 +1,21 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url = uri("https://mirrors.cloud.tencent.com/nexus/repository/maven-public/") }
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.1.4'
+    }
+}
+
+// AGP 8.x 下 allprojects.repositories 会被 dependencyResolutionManagement 覆盖
+// 此处保留仅作兜底（PREFER_SETTINGS 模式下不会报错但会被忽略）
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url = uri("https://mirrors.cloud.tencent.com/AndroidSDK/google_maven2/") }
+        maven { url = uri("https://mirrors.cloud.tencent.com/nexus/repository/maven-public/") }
+    }
+}

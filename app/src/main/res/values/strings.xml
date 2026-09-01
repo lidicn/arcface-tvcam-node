@@ -1,0 +1,72 @@
+<resources>
+    <string name="app_name">ArcFace 电视服务器</string>
+
+    <!-- 通用按钮 -->
+    <string name="btn_ok">确定</string>
+    <string name="btn_cancel">取消</string>
+
+    <!-- 底部 Tab -->
+    <string name="tab_recognize">识别</string>
+    <string name="tab_register">录入</string>
+    <string name="tab_manage">人脸库</string>
+
+    <!-- 顶部状态 -->
+    <string name="status_running">运行中</string>
+    <string name="status_stopped">未启动</string>
+
+    <!-- 实时识别页 -->
+    <string name="recognize_hint">对准人脸，实时识别中…</string>
+    <string name="recognize_unknown">未知</string>
+    <string name="permission_camera_msg">需要相机权限才能使用，请在设置中开启</string>
+
+    <!-- 录入页 -->
+    <string name="title_register">录入人脸</string>
+    <string name="register_hint">对准面部，输入姓名后拍照录入</string>
+    <string name="registered_count">已注册 %d 人</string>
+    <string name="register_input_name">输入姓名（如：张三）</string>
+    <string name="register_capture">拍照录入</string>
+    <string name="register_no_name">请先输入姓名</string>
+    <string name="register_success">已录入：%s</string>
+    <string name="register_fail">录入失败：未检测到人脸或图片无效</string>
+
+    <!-- 人脸库管理页 -->
+    <string name="manage_title">人脸库</string>
+    <string name="manage_empty">人脸库为空\n去「录入」页添加人脸吧</string>
+    <string name="manage_import_nas">从 NAS 导入</string>
+    <string name="manage_importing">导入中…</string>
+    <string name="manage_import_done">成功导入 %d 人</string>
+    <string name="manage_import_fail">导入失败：%s</string>
+    <string name="manage_clear_all">清空全部</string>
+    <string name="manage_clear_confirm">确定要清空全部 %d 条人脸记录吗？此操作不可恢复</string>
+    <string name="manage_cleared">已清空全部人脸</string>
+    <string name="manage_delete_confirm">删除「%s」的人脸记录？</string>
+    <string name="manage_deleted">已删除：%s</string>
+
+    <!-- ===== 电视版文案 ===== -->
+    <string name="tv_status_init">摄像头：初始化中…</string>
+    <string name="tv_status_opened">摄像头：已连接</string>
+    <string name="tv_status_closed">摄像头：未连接</string>
+    <string name="tv_status_err">摄像头：错误 %1$s</string>
+    <string name="tv_hint">确认=录入人脸 · 菜单/右键=设置 · 返回=收起面板</string>
+    <string name="tv_settings_title">设置</string>
+    <string name="tv_zoom_mode">变焦模式：检测中…</string>
+    <string name="tv_register">录入人脸</string>
+    <string name="tv_manage">人脸库</string>
+    <string name="tv_service_toggle">HTTP 服务：运行中</string>
+    <string name="tv_close_panel">收起面板</string>
+    <string name="tv_zoom_physical">物理变焦（支持）</string>
+    <string name="tv_zoom_digital">数字变焦（兜底）</string>
+    <string name="tv_zoom_on">智能变焦：开</string>
+    <string name="tv_zoom_off">智能变焦：关</string>
+    <string name="tv_service_running">HTTP 服务：运行中</string>
+    <string name="tv_service_stopped">HTTP 服务：已停止</string>
+    <string name="tv_no_usb">未检测到 UVC 摄像头，请插入 USB 摄像头并授权</string>
+    <string name="tv_reg_input_name">输入姓名后按确认录入</string>
+    <string name="tv_reg_ok">录入成功：%1$s</string>
+    <string name="tv_reg_fail">录入失败，请重试</string>
+    <string name="tv_start_service">启动服务</string>
+    <string name="tv_stop_service">停止服务</string>
+    <string name="tv_service_off">服务已关闭</string>
+    <string name="tv_snapshot_taken">已抓拍</string>
+    <string name="tv_snapshot">抓拍</string>
+</resources>

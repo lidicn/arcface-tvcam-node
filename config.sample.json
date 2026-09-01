@@ -1,0 +1,30 @@
+{
+  "_comment": "ArcFace TV Cam Node 配置示例。复制为实际配置后通过 WebUI 设置页或 /api/config 端点填写。所有字段均为可选，留空则对应功能禁用。",
+
+  "arcsoft_app_id": "",
+  "arcsoft_sdk_key": "",
+  "_arcsoft_comment": "在 ArcSoft 控制台为包名 com.example.arcfaceandroid 申请的 APP_ID / SDK_KEY。首次激活需联网。",
+
+  "pano_enabled": false,
+  "pano_url": "http://<go2rtc-ip>:1984/api/frame.jpeg?src=<stream-name>",
+  "pano_user": "",
+  "pano_pass": "",
+  "pano_poll_ms": 1500,
+  "pano_fetch_timeout_ms": 15000,
+  "pano_max_w": 1280,
+  "_pano_comment": "第二路米家全景摄像头，经 go2rtc HTTP 取帧。pano_url 中的 src= 对应 go2rtc.yaml 中的流名。",
+
+  "memory_agent_base": "",
+  "node_id": "tv-livingroom",
+  "node_type": "tv",
+  "node_endpoint": "http://<tv-ip>:8080",
+  "_node_comment": "memory-agent 人脸节点池配置。memory_agent_base 为空则不注册节点池，TV 端独立运行。",
+
+  "nas_base_url": "",
+  "auto_import_from_nas": false,
+  "_nas_comment": "可选：从 NAS HTTP 服务批量导入人脸库（manifest.json + 每人一张照片）。",
+
+  "match_threshold": 0.80,
+  "hotspot_enabled": true,
+  "_recognition_comment": "识别阈值（生活照 0.80，证件照 0.82）。hotspot 热点 ROI 提速，固定座位场景建议开启。"
+}

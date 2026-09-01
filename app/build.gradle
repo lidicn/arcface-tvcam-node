@@ -1,0 +1,63 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.example.arcfaceandroid'
+    compileSdk 34
+
+    defaultConfig {
+        // 必须和你在 ArcSoft 控制台绑定的包名一致！
+        applicationId "com.example.arcfaceandroid"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+
+        // Mix 3 是 arm64；armeabi-v7a 也带上以兼容老设备
+        ndk {
+            abiFilters 'arm64-v8a', 'armeabi-v7a'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // 真实摄像头取流：直接用 Android 标准 Camera2 API 打开系统摄像头（TVOS 已把 USB 摄像头
+    // 暴露为系统 camera，腾讯会议即此路径）。无需 UVC 原生库 / NDK / USB 授权，见 Camera2CaptureSource。
+    // 旧 UVC 方案（com.herohan:UVCAndroid + UvcCameraCaptureSource）已弃用并删除。
+
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'com.google.android.material:material:1.11.0'
+    // NanoHTTPD 依赖已移除 — 改用原生 ServerSocket 实现（FaceHttpServer.java）
+    // 原: implementation 'org.nanohttpd:nanohttpd:2.3.1'   // POST body 有 bug，已替换
+
+    // ===== 安卓 TV（Leanback 暗色大屏 UI / 遥控器 DPAD 导航）=====
+    implementation 'androidx.leanback:leanback:1.0.0'
+    implementation 'androidx.fragment:fragment:1.6.2'
+
+    // ===== UVC 外接 USB 摄像头（取流层已解耦）=====
+    // 小米电视的 Android 不把 USB 摄像头注册为系统 camera，必须走 UVC 库直接取流。
+    // 取流实现已抽象为 CameraCaptureSource 接口，默认 StubCameraCaptureSource（测试帧）保证可编译；
+    // 回家接入真 USB 摄像头时，新增 UvcCameraCaptureSource 实现并在 TvCameraFragment.createSource() 替换。
+    // 注意：AUSBC(jiangdongguo) 在 JitPack 上未成功构建、serenegiant 旧版已从 Maven Central 移除，
+    // 因此不在此直接声明远程 UVC 依赖，改用本地 module 或真库接入方式（详见 README）。
+
+    // WorkManager 看门狗：进程保活（对抗小米 PatchWall 杀进程）
+    implementation 'androidx.work:work-runtime:2.9.0'
+
+    // ArcSoft 控制台下载的 Android SDK（已复制到 app/libs，含 arcsoft_face.jar）
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+}
