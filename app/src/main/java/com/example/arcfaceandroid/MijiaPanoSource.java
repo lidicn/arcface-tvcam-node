@@ -67,11 +67,13 @@ public class MijiaPanoSource {
         Log.i(TAG, "pano source stopped");
     }
 
-    /** 配置变更后调用：stop 并用新参数 restart（如果启用） */
+    /** 配置变更后调用：stop 并用新参数 restart（如果新配置中启用了米家路）。
+     *  注意：之前未运行（pano_enabled=false）时，配置变更为启用后也必须启动，
+     *  不能只靠 wasRunning 判断（否则首次启用时不会启动）。 */
     public void onConfigChanged() {
-        boolean wasRunning = running.get();
         stop();
-        if (wasRunning) {
+        AppConfig cfg = AppConfig.get(appContext);
+        if (cfg.isPanoEnabled() && cfg.getPanoUrl() != null && !cfg.getPanoUrl().isEmpty()) {
             // 稍等再启动，确保 stop 完成
             new Thread(() -> {
                 try { Thread.sleep(500); } catch (InterruptedException ignore) {}
