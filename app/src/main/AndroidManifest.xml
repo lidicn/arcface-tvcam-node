@@ -67,6 +67,15 @@
             -->
         </activity>
 
+        <!-- 人脸注册引导 Activity（电视端引导注册，实时质量反馈+自动采集） -->
+        <activity
+            android:name=".RegisterActivity"
+            android:exported="false"
+            android:hardwareAccelerated="true"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|uiMode"
+            android:parentActivityName=".TvMainActivity" />
+
         <!-- 人脸识别 + HTTP 服务前台服务（dataSync 用于 LAN 接口；mediaPlayback 用于静音 AudioTrack 保活；camera 用于后台持续识别） -->
         <service
             android:name=".FaceServerService"

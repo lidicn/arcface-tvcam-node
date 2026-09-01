@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <!-- 摄像头预览 -->
+    <TextureView
+        android:id="@+id/preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center" />
+
+    <!-- 人脸框叠加层 -->
+    <com.example.arcfaceandroid.RegisterOverlayView
+        android:id="@+id/overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- 顶部标题栏 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:background="@drawable/top_gradient">
+
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="人脸注册引导"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="请站在椭圆区域内，正对摄像头"
+            android:textColor="#B0BEC5"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- 底部信息面板 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:background="@drawable/bottom_gradient">
+
+        <!-- 状态提示 -->
+        <TextView
+            android:id="@+id/tv_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="正在检测人脸..."
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="12dp" />
+
+        <!-- 质量指标 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:id="@+id/tv_size"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="人脸: --"
+                android:textColor="#90A4AE"
+                android:textSize="13sp"
+                android:layout_marginEnd="20dp" />
+
+            <TextView
+                android:id="@+id/tv_angle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="角度: --"
+                android:textColor="#90A4AE"
+                android:textSize="13sp"
+                android:layout_marginEnd="20dp" />
+
+            <TextView
+                android:id="@+id/tv_brightness"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="亮度: --"
+                android:textColor="#90A4AE"
+                android:textSize="13sp"
+                android:layout_marginEnd="20dp" />
+
+            <TextView
+                android:id="@+id/tv_persons"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="人数: --"
+                android:textColor="#90A4AE"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- 姓名输入 -->
+        <LinearLayout
+            android:id="@+id/name_input_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="姓名:"
+                android:textColor="#B0BEC5"
+                android:textSize="14sp"
+                android:layout_marginEnd="8dp" />
+
+            <EditText
+                android:id="@+id/et_name"
+                android:layout_width="240dp"
+                android:layout_height="wrap_content"
+                android:hint="请输入姓名"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#607D8B"
+                android:textSize="14sp"
+                android:background="#1A237E"
+                android:padding="10dp"
+                android:singleLine="true"
+                android:imeOptions="actionDone"
+                android:inputType="text" />
+        </LinearLayout>
+
+        <!-- 按钮区 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <Button
+                android:id="@+id/btn_cancel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="取消"
+                android:textColor="#FFFFFF"
+                android:background="#455A64"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:layout_marginEnd="16dp" />
+
+            <Button
+                android:id="@+id/btn_action"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="开始注册"
+                android:textColor="#FFFFFF"
+                android:background="#1A237E"
+                android:paddingStart="32dp"
+                android:paddingEnd="32dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 倒计时遮罩 -->
+    <TextView
+        android:id="@+id/tv_countdown"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text=""
+        android:textColor="#4CAF50"
+        android:textSize="120sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <!-- 注册成功遮罩 -->
+    <LinearLayout
+        android:id="@+id/success_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="#CC000000"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✓"
+            android:textColor="#4CAF50"
+            android:textSize="80sp"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="注册成功！"
+            android:textColor="#FFFFFF"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tv_success_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#B0BEC5"
+            android:textSize="16sp"
+            android:layout_marginBottom="32dp" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_done"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="完成"
+                android:textColor="#FFFFFF"
+                android:background="#4CAF50"
+                android:paddingStart="32dp"
+                android:paddingEnd="32dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp"
+                android:layout_marginEnd="16dp" />
+
+            <Button
+                android:id="@+id/btn_reregister"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="重新注册"
+                android:textColor="#FFFFFF"
+                android:background="#455A64"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+</FrameLayout>

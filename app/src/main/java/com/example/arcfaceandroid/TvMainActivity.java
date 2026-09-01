@@ -161,6 +161,16 @@ public class TvMainActivity extends FragmentActivity {
     }
 
     @Override
+    public boolean onKeyDown(int keyCode, android.view.KeyEvent event) {
+        // 菜单键启动引导注册（TV 端遥控器最方便的入口）
+        if (keyCode == android.view.KeyEvent.KEYCODE_MENU) {
+            startActivity(new Intent(this, RegisterActivity.class));
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
         RecognitionState.get().unregister(recognitionListener);
