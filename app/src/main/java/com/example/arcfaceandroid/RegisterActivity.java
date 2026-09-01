@@ -236,6 +236,8 @@ public class RegisterActivity extends AppCompatActivity {
         successLayout.setVisibility(View.GONE);
         poseProgress.setVisibility(View.GONE);
         tvPoseGuide.setVisibility(View.GONE);
+        // 设置默认焦点，确保遥控器可操作
+        btnNewUser.post(() -> btnNewUser.requestFocus());
     }
 
     private void showUserList() {
@@ -261,8 +263,9 @@ public class RegisterActivity extends AppCompatActivity {
                 btn.setText(name);
                 btn.setTextColor(0xFFFFFFFF);
                 btn.setTextSize(18);
-                btn.setBackgroundColor(0xFF00695C);
+                btn.setBackgroundResource(R.drawable.btn_teal_selector);
                 btn.setPadding(24, 16, 24, 16);
+                btn.setFocusable(true);
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -273,6 +276,10 @@ public class RegisterActivity extends AppCompatActivity {
                     showReadyScreen();
                 });
                 userListContainer.addView(btn);
+            }
+            // 设置第一个用户按钮为默认焦点
+            if (userListContainer.getChildCount() > 0) {
+                userListContainer.getChildAt(0).post(() -> userListContainer.getChildAt(0).requestFocus());
             }
         }
     }
@@ -303,16 +310,16 @@ public class RegisterActivity extends AppCompatActivity {
     private void setRegisterMode(RegisterMode mode) {
         this.registerMode = mode;
         if (mode == RegisterMode.QUICK) {
-            btnQuickMode.setBackgroundColor(0xFF1A237E);
+            btnQuickMode.setBackgroundResource(R.drawable.btn_primary_selector);
             btnQuickMode.setTextColor(0xFFFFFFFF);
-            btnFullMode.setBackgroundColor(0xFF455A64);
+            btnFullMode.setBackgroundResource(R.drawable.btn_secondary_selector);
             btnFullMode.setTextColor(0xFFB0BEC5);
             poseProgress.setVisibility(View.GONE);
             tvPoseGuide.setVisibility(View.GONE);
         } else {
-            btnFullMode.setBackgroundColor(0xFF1A237E);
+            btnFullMode.setBackgroundResource(R.drawable.btn_primary_selector);
             btnFullMode.setTextColor(0xFFFFFFFF);
-            btnQuickMode.setBackgroundColor(0xFF455A64);
+            btnQuickMode.setBackgroundResource(R.drawable.btn_secondary_selector);
             btnQuickMode.setTextColor(0xFFB0BEC5);
             poseProgress.setVisibility(View.VISIBLE);
             tvPoseGuide.setVisibility(View.VISIBLE);
@@ -466,11 +473,11 @@ public class RegisterActivity extends AppCompatActivity {
                 if (finalAllPassed) {
                     tvStatus.setText("质量合格，点击「开始注册」");
                     btnAction.setEnabled(true);
-                    btnAction.setBackgroundColor(0xFF1A237E);
+                    btnAction.setBackgroundResource(R.drawable.btn_primary_selector);
                 } else {
                     tvStatus.setText(getAdjustHint(finalSizeOk, finalPoseOk, finalBrightnessOk, finalSinglePerson));
                     btnAction.setEnabled(false);
-                    btnAction.setBackgroundColor(0xFF455A64);
+                    btnAction.setBackgroundResource(R.drawable.btn_secondary_selector);
                 }
             } else if (currentState == State.WAITING_STABLE) {
                 tvStatus.setText("请保持不动，正在确认稳定性...");

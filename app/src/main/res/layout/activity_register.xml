@@ -112,7 +112,7 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:gravity="center"
-        android:background="#CC000000"
+        android:background="#FF000000"
         android:padding="48dp">
 
         <TextView
@@ -131,9 +131,11 @@
             android:text="新建用户"
             android:textColor="#FFFFFF"
             android:textSize="20sp"
-            android:background="#1A237E"
+            android:background="@drawable/btn_primary_selector"
             android:padding="16dp"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="16dp"
+            android:focusable="true"
+            android:focusableInTouchMode="true" />
 
         <Button
             android:id="@+id/btn_append_user"
@@ -142,9 +144,10 @@
             android:text="追加到已有用户"
             android:textColor="#FFFFFF"
             android:textSize="20sp"
-            android:background="#00695C"
+            android:background="@drawable/btn_teal_selector"
             android:padding="16dp"
-            android:layout_marginBottom="32dp" />
+            android:layout_marginBottom="32dp"
+            android:focusable="true" />
 
         <Button
             android:id="@+id/btn_mode_cancel"
@@ -153,8 +156,9 @@
             android:text="返回"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
-            android:background="#455A64"
-            android:padding="12dp" />
+            android:background="@drawable/btn_secondary_selector"
+            android:padding="12dp"
+            android:focusable="true" />
     </LinearLayout>
 
     <!-- 已有用户列表面板（追加模式时显示） -->
@@ -164,7 +168,7 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:gravity="center"
-        android:background="#CC000000"
+        android:background="#FF000000"
         android:padding="48dp"
         android:visibility="gone">
 
@@ -196,9 +200,10 @@
             android:text="返回"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
-            android:background="#455A64"
+            android:background="@drawable/btn_secondary_selector"
             android:padding="12dp"
-            android:layout_marginTop="24dp" />
+            android:layout_marginTop="24dp"
+            android:focusable="true" />
     </LinearLayout>
 
     <!-- 底部信息面板 -->
@@ -328,12 +333,13 @@
                 android:text="快速(1张正脸)"
                 android:textColor="#FFFFFF"
                 android:textSize="13sp"
-                android:background="#1A237E"
+                android:background="@drawable/btn_primary_selector"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
                 android:paddingTop="8dp"
                 android:paddingBottom="8dp"
-                android:layout_marginEnd="12dp" />
+                android:layout_marginEnd="12dp"
+                android:focusable="true" />
 
             <Button
                 android:id="@+id/btn_full_mode"
@@ -342,11 +348,12 @@
                 android:text="完整(5张多姿态)"
                 android:textColor="#B0BEC5"
                 android:textSize="13sp"
-                android:background="#455A64"
+                android:background="@drawable/btn_secondary_selector"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
                 android:paddingTop="8dp"
-                android:paddingBottom="8dp" />
+                android:paddingBottom="8dp"
+                android:focusable="true" />
         </LinearLayout>
 
         <!-- 按钮区 -->
@@ -362,12 +369,13 @@
                 android:layout_height="wrap_content"
                 android:text="取消"
                 android:textColor="#FFFFFF"
-                android:background="#455A64"
+                android:background="@drawable/btn_secondary_selector"
                 android:paddingStart="24dp"
                 android:paddingEnd="24dp"
                 android:paddingTop="10dp"
                 android:paddingBottom="10dp"
-                android:layout_marginEnd="16dp" />
+                android:layout_marginEnd="16dp"
+                android:focusable="true" />
 
             <Button
                 android:id="@+id/btn_action"
@@ -375,11 +383,12 @@
                 android:layout_height="wrap_content"
                 android:text="开始注册"
                 android:textColor="#FFFFFF"
-                android:background="#1A237E"
+                android:background="@drawable/btn_primary_selector"
                 android:paddingStart="32dp"
                 android:paddingEnd="32dp"
                 android:paddingTop="10dp"
-                android:paddingBottom="10dp" />
+                android:paddingBottom="10dp"
+                android:focusable="true" />
         </LinearLayout>
     </LinearLayout>
 
@@ -442,12 +451,13 @@
                 android:layout_height="wrap_content"
                 android:text="完成"
                 android:textColor="#FFFFFF"
-                android:background="#4CAF50"
+                android:background="@drawable/btn_success_selector"
                 android:paddingStart="32dp"
                 android:paddingEnd="32dp"
                 android:paddingTop="12dp"
                 android:paddingBottom="12dp"
-                android:layout_marginEnd="16dp" />
+                android:layout_marginEnd="16dp"
+                android:focusable="true" />
 
             <Button
                 android:id="@+id/btn_reregister"
@@ -455,11 +465,12 @@
                 android:layout_height="wrap_content"
                 android:text="重新注册"
                 android:textColor="#FFFFFF"
-                android:background="#455A64"
+                android:background="@drawable/btn_secondary_selector"
                 android:paddingStart="24dp"
                 android:paddingEnd="24dp"
                 android:paddingTop="12dp"
-                android:paddingBottom="12dp" />
+                android:paddingBottom="12dp"
+                android:focusable="true" />
         </LinearLayout>
     </LinearLayout>
 
