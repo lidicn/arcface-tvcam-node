@@ -62,7 +62,7 @@ public class RegisterActivity extends AppCompatActivity {
     private static final int STABLE_FRAMES_REQUIRED = 25;
     private static final int COUNTDOWN_SECONDS = 3;
 
-    // 多姿态定义
+    // 多姿态定义（仅文字引导，不做角度自动检测——ArcSoft人脸框接近正方形，宽高比无法判断姿态）
     private static final String[] POSE_NAMES = {"正脸", "左转", "右转", "抬头", "低头"};
     private static final String[] POSE_GUIDES = {
             "请正对摄像头，保持自然表情",
@@ -70,14 +70,6 @@ public class RegisterActivity extends AppCompatActivity {
             "请将头向右转约30度",
             "请将头向上仰约15度",
             "请将头向下低约15度"
-    };
-    // 每个姿态的宽高比范围（粗略判断）
-    private static final float[][] POSE_ASPECT_RANGES = {
-            {0.8f, 1.2f},   // 正脸
-            {0.5f, 0.9f},   // 左转（脸变窄）
-            {0.5f, 0.9f},   // 右转（脸变窄）
-            {1.0f, 1.5f},   // 抬头（脸变宽）
-            {1.0f, 1.5f}    // 低头（脸变宽）
     };
 
     // UI 组件
@@ -214,6 +206,40 @@ public class RegisterActivity extends AppCompatActivity {
 
         btnQuickMode.setOnClickListener(v -> setRegisterMode(RegisterMode.QUICK));
         btnFullMode.setOnClickListener(v -> setRegisterMode(RegisterMode.FULL));
+
+        // 为所有按钮设置焦点监听器，确保 TV 遥控器焦点时视觉效果明显
+        // （selector 在某些 TV 设备上焦点状态触发不稳定，代码手动兜底）
+        Button[] allButtons = {btnNewUser, btnAppendUser, btnModeCancel, btnUserListBack,
+                btnCancel, btnAction, btnDone, btnReregister, btnQuickMode, btnFullMode};
+        for (Button b : allButtons) {
+            applyFocusEffect(b);
+        }
+    }
+
+    /** 为按钮应用明显的焦点效果：焦点时橙色背景+白色文字+轻微放大 */
+    private void applyFocusEffect(Button btn) {
+        btn.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                btn.setBackgroundColor(0xFFFF9800); // 橙色
+                btn.setTextColor(0xFFFFFFFF);
+                btn.setScaleX(1.05f);
+                btn.setScaleY(1.05f);
+            } else {
+                // 恢复默认背景（根据按钮类型）
+                if (btn == btnNewUser || btn == btnAction || btn == btnQuickMode || btn == btnFullMode) {
+                    btn.setBackgroundResource(R.drawable.btn_primary_selector);
+                } else if (btn == btnDone) {
+                    btn.setBackgroundResource(R.drawable.btn_success_selector);
+                } else if (btn == btnAppendUser) {
+                    btn.setBackgroundResource(R.drawable.btn_teal_selector);
+                } else {
+                    btn.setBackgroundResource(R.drawable.btn_secondary_selector);
+                }
+                btn.setTextColor(0xFFB0BEC5);
+                btn.setScaleX(1.0f);
+                btn.setScaleY(1.0f);
+            }
+        });
     }
 
     private void setupModeSelect() {
@@ -417,7 +443,7 @@ public class RegisterActivity extends AppCompatActivity {
 
         List<FaceInfo> faces = FaceServer.getInstance().detectFacesOnly(nv21, width, height, null);
 
-        boolean sizeOk = false, brightnessOk = false, singlePerson = false, poseOk = false;
+        boolean sizeOk = false, brightnessOk = false, singlePerson = false;
         int faceSize = 0;
         float aspectRatio = 0;
         int brightness = 0;
@@ -433,23 +459,16 @@ public class RegisterActivity extends AppCompatActivity {
                 sizeOk = faceSize >= MIN_FACE_PX;
                 brightnessOk = brightness >= MIN_BRIGHTNESS && brightness <= MAX_BRIGHTNESS;
                 singlePerson = faces.size() == 1;
-
-                // 姿态检测：快速模式要求正脸，完整模式按当前姿态检查
-                if (registerMode == RegisterMode.QUICK) {
-                    poseOk = aspectRatio >= 0.8f && aspectRatio <= 1.2f;
-                } else {
-                    float[] range = POSE_ASPECT_RANGES[currentPoseIndex];
-                    poseOk = aspectRatio >= range[0] && aspectRatio <= range[1];
-                }
+                // 注意：不再检测姿态角度——ArcSoft人脸框接近正方形，宽高比无法判断左转/右转
+                // 多姿态模式仅靠文字引导用户做动作，质量检测只查大小/亮度/单人
             }
         }
 
-        boolean allPassed = sizeOk && brightnessOk && singlePerson && poseOk;
+        boolean allPassed = sizeOk && brightnessOk && singlePerson;
 
         // 更新 UI
         final boolean finalAllPassed = allPassed;
         final boolean finalSizeOk = sizeOk;
-        final boolean finalPoseOk = poseOk;
         final boolean finalBrightnessOk = brightnessOk;
         final boolean finalSinglePerson = singlePerson;
         final int finalFaceSize = faceSize;
@@ -462,8 +481,12 @@ public class RegisterActivity extends AppCompatActivity {
             overlayView.setFaces(finalFaces, width, height, finalAllPassed);
             tvSize.setText(String.format(Locale.getDefault(), "人脸: %dpx %s", finalFaceSize, finalSizeOk ? "✓" : "✗"));
             tvSize.setTextColor(finalSizeOk ? 0xFF4CAF50 : 0xFFF44336);
-            tvAngle.setText(String.format(Locale.getDefault(), "角度: %.2f %s", finalAspect, finalPoseOk ? "✓" : "✗"));
-            tvAngle.setTextColor(finalPoseOk ? 0xFF4CAF50 : 0xFFF44336);
+            // 角度栏显示当前姿态引导（而非检测结果）
+            String poseText = registerMode == RegisterMode.FULL
+                    ? "姿态: " + POSE_NAMES[currentPoseIndex]
+                    : String.format(Locale.getDefault(), "比例: %.2f", finalAspect);
+            tvAngle.setText(poseText);
+            tvAngle.setTextColor(0xFFB0BEC5);
             tvBrightness.setText(String.format(Locale.getDefault(), "亮度: %d %s", finalBrightness, finalBrightnessOk ? "✓" : "✗"));
             tvBrightness.setTextColor(finalBrightnessOk ? 0xFF4CAF50 : 0xFFF44336);
             tvPersons.setText(String.format(Locale.getDefault(), "人数: %d %s", finalPersonCount, finalSinglePerson ? "✓" : "✗"));
@@ -475,7 +498,7 @@ public class RegisterActivity extends AppCompatActivity {
                     btnAction.setEnabled(true);
                     btnAction.setBackgroundResource(R.drawable.btn_primary_selector);
                 } else {
-                    tvStatus.setText(getAdjustHint(finalSizeOk, finalPoseOk, finalBrightnessOk, finalSinglePerson));
+                    tvStatus.setText(getAdjustHint(finalSizeOk, finalBrightnessOk, finalSinglePerson));
                     btnAction.setEnabled(false);
                     btnAction.setBackgroundResource(R.drawable.btn_secondary_selector);
                 }
@@ -497,16 +520,13 @@ public class RegisterActivity extends AppCompatActivity {
         }
     }
 
-    private String getAdjustHint(boolean sizeOk, boolean poseOk, boolean brightnessOk, boolean singlePerson) {
+    private String getAdjustHint(boolean sizeOk, boolean brightnessOk, boolean singlePerson) {
         if (!singlePerson) return "请确保画面中只有您一人";
         if (!sizeOk) return "请靠近摄像头，人脸需要 > 80px";
-        if (!poseOk) {
-            if (registerMode == RegisterMode.FULL) {
-                return "请按提示完成：" + POSE_GUIDES[currentPoseIndex];
-            }
-            return "请正对摄像头，不要侧脸或低头";
-        }
         if (!brightnessOk) return "请调整光线（太暗或太亮）";
+        if (registerMode == RegisterMode.FULL) {
+            return "请按提示完成：" + POSE_GUIDES[currentPoseIndex];
+        }
         return "请站在椭圆区域内";
     }
 

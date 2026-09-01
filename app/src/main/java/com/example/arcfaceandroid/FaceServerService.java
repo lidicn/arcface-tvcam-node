@@ -278,8 +278,12 @@ public class FaceServerService extends Service {
             return; // 已在运行，无需重启
         }
         cameraRunning.set(true);
-        if (source != null && source.isOpened()) {
-            source.stop(); // 状态不一致时先清理再开
+        // 关键修复：无论 source.isOpened() 状态如何，都先 stop() 重置内部状态
+        // （Camera2CaptureSource.starting 原子变量 + cameraDevice 引用），再 start()。
+        // 否则摄像头被 RegisterActivity 等其他组件抢占后，starting 仍为 true，
+        // compareAndSet(false,true) 失败，Service 永远无法恢复摄像头 → 黑屏。
+        if (source != null) {
+            source.stop();
         }
         source.start(frameListener);
         RecognitionState.get().setCameraStatus(true, "摄像头启动中");
