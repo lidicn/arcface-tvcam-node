@@ -113,11 +113,11 @@
     </div>
     <div class="row">
       <div class="field">
-        <label>轮询间隔 (ms)</label>
-        <input id="pano_poll_ms" type="number" min="500" step="100" value="1500" />
+        <label>识别间隔 (ms) <span style="color:#6b7488;font-size:11px;">MJPEG流持续取帧，按此间隔抽帧识别</span></label>
+        <input id="pano_poll_ms" type="number" min="200" step="100" value="500" />
       </div>
       <div class="field">
-        <label>取帧超时 (ms)</label>
+        <label>取帧超时 (ms) <span style="color:#6b7488;font-size:11px;">流无数据超时重连</span></label>
         <input id="pano_fetch_timeout_ms" type="number" min="3000" step="1000" value="15000" />
       </div>
       <div class="field">

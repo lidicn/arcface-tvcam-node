@@ -34,8 +34,8 @@ public final class Constants {
     // ===== 第二路摄像头：米家全景（经 go2rtc HTTP 接入）=====
     // 所有部署相关参数（URL/账号/密码/是否启用）已迁移至 AppConfig。
     // 以下为默认值，仅在 AppConfig 未配置时使用。
-    /** 两次取帧最小间隔（ms）默认值 */
-    public static final long PANORAMA_POLL_MS = 1500;
+    /** 两次取帧最小间隔（ms）默认值 — MJPEG 流模式下设为 500ms，实现亚秒级识别 */
+    public static final long PANORAMA_POLL_MS = 500;
     /** 单次 HTTP 取帧超时（ms）默认值 */
     public static final int PANORAMA_FETCH_TIMEOUT_MS = 15000;
     /** 全景帧下采样到的最大宽（px）默认值 */
