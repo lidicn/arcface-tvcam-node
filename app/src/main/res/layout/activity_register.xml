@@ -42,16 +42,187 @@
             android:text="请站在椭圆区域内，正对摄像头"
             android:textColor="#B0BEC5"
             android:textSize="14sp" />
+
+        <!-- 多姿态进度指示器 -->
+        <LinearLayout
+            android:id="@+id/pose_progress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="12dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/pose_1"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:text="正"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:background="#455A64"
+                android:layout_marginEnd="8dp" />
+            <TextView
+                android:id="@+id/pose_2"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:text="左"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:background="#455A64"
+                android:layout_marginEnd="8dp" />
+            <TextView
+                android:id="@+id/pose_3"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:text="右"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:background="#455A64"
+                android:layout_marginEnd="8dp" />
+            <TextView
+                android:id="@+id/pose_4"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:text="仰"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:background="#455A64"
+                android:layout_marginEnd="8dp" />
+            <TextView
+                android:id="@+id/pose_5"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:text="低"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:background="#455A64" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 模式选择面板（初始显示） -->
+    <LinearLayout
+        android:id="@+id/mode_select_panel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="#CC000000"
+        android:padding="48dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="选择注册方式"
+            android:textColor="#FFFFFF"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="32dp" />
+
+        <Button
+            android:id="@+id/btn_new_user"
+            android:layout_width="360dp"
+            android:layout_height="wrap_content"
+            android:text="新建用户"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:background="#1A237E"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp" />
+
+        <Button
+            android:id="@+id/btn_append_user"
+            android:layout_width="360dp"
+            android:layout_height="wrap_content"
+            android:text="追加到已有用户"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:background="#00695C"
+            android:padding="16dp"
+            android:layout_marginBottom="32dp" />
+
+        <Button
+            android:id="@+id/btn_mode_cancel"
+            android:layout_width="200dp"
+            android:layout_height="wrap_content"
+            android:text="返回"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:background="#455A64"
+            android:padding="12dp" />
+    </LinearLayout>
+
+    <!-- 已有用户列表面板（追加模式时显示） -->
+    <LinearLayout
+        android:id="@+id/user_list_panel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="#CC000000"
+        android:padding="48dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="选择要追加的用户"
+            android:textColor="#FFFFFF"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="24dp" />
+
+        <ScrollView
+            android:layout_width="400dp"
+            android:layout_height="wrap_content"
+            android:maxHeight="400dp">
+
+            <LinearLayout
+                android:id="@+id/user_list_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
+
+        <Button
+            android:id="@+id/btn_user_list_back"
+            android:layout_width="200dp"
+            android:layout_height="wrap_content"
+            android:text="返回"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:background="#455A64"
+            android:padding="12dp"
+            android:layout_marginTop="24dp" />
     </LinearLayout>
 
     <!-- 底部信息面板 -->
     <LinearLayout
+        android:id="@+id/bottom_panel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:orientation="vertical"
         android:padding="24dp"
         android:background="@drawable/bottom_gradient">
+
+        <!-- 姿态引导文字（多姿态模式时显示当前动作） -->
+        <TextView
+            android:id="@+id/tv_pose_guide"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#FFD54F"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone" />
 
         <!-- 状态提示 -->
         <TextView
@@ -139,6 +310,43 @@
                 android:singleLine="true"
                 android:imeOptions="actionDone"
                 android:inputType="text" />
+        </LinearLayout>
+
+        <!-- 注册模式选择（快速/完整） -->
+        <LinearLayout
+            android:id="@+id/register_mode_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="12dp">
+
+            <Button
+                android:id="@+id/btn_quick_mode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="快速(1张正脸)"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:background="#1A237E"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:layout_marginEnd="12dp" />
+
+            <Button
+                android:id="@+id/btn_full_mode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="完整(5张多姿态)"
+                android:textColor="#B0BEC5"
+                android:textSize="13sp"
+                android:background="#455A64"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp" />
         </LinearLayout>
 
         <!-- 按钮区 -->
