@@ -76,9 +76,9 @@ public class RegisterActivity extends AppCompatActivity {
     private TextureView previewView;
     private RegisterOverlayView overlayView;
     private TextView tvTitle, tvSubtitle, tvStatus, tvSize, tvAngle, tvBrightness, tvPersons, tvCountdown;
-    private TextView tvPoseGuide, tvSuccessName;
+    private TextView tvPoseGuide, tvSuccessName, tvQuality;
     private EditText etName;
-    private Button btnCancel, btnAction, btnDone, btnReregister;
+    private Button btnCancel, btnAction, btnDone, btnReregister, btnTest;
     private Button btnNewUser, btnAppendUser, btnModeCancel;
     private Button btnQuickMode, btnFullMode;
     private Button btnUserListBack;
@@ -165,11 +165,13 @@ public class RegisterActivity extends AppCompatActivity {
         tvCountdown = findViewById(R.id.tv_countdown);
         tvPoseGuide = findViewById(R.id.tv_pose_guide);
         tvSuccessName = findViewById(R.id.tv_success_name);
+        tvQuality = findViewById(R.id.tv_quality);
         etName = findViewById(R.id.et_name);
         btnCancel = findViewById(R.id.btn_cancel);
         btnAction = findViewById(R.id.btn_action);
         btnDone = findViewById(R.id.btn_done);
         btnReregister = findViewById(R.id.btn_reregister);
+        btnTest = findViewById(R.id.btn_test);
         btnNewUser = findViewById(R.id.btn_new_user);
         btnAppendUser = findViewById(R.id.btn_append_user);
         btnModeCancel = findViewById(R.id.btn_mode_cancel);
@@ -200,6 +202,7 @@ public class RegisterActivity extends AppCompatActivity {
         btnCancel.setOnClickListener(v -> finish());
         btnAction.setOnClickListener(v -> startRegistration());
         btnDone.setOnClickListener(v -> finish());
+        btnTest.setOnClickListener(v -> startTestMode());
         btnReregister.setOnClickListener(v -> resetToModeSelect());
         btnModeCancel.setOnClickListener(v -> finish());
         btnUserListBack.setOnClickListener(v -> showModeSelect());
@@ -210,7 +213,7 @@ public class RegisterActivity extends AppCompatActivity {
         // 为所有按钮设置焦点监听器，确保 TV 遥控器焦点时视觉效果明显
         // （selector 在某些 TV 设备上焦点状态触发不稳定，代码手动兜底）
         Button[] allButtons = {btnNewUser, btnAppendUser, btnModeCancel, btnUserListBack,
-                btnCancel, btnAction, btnDone, btnReregister, btnQuickMode, btnFullMode};
+                btnCancel, btnAction, btnDone, btnReregister, btnTest, btnQuickMode, btnFullMode};
         for (Button b : allButtons) {
             applyFocusEffect(b);
         }
@@ -230,7 +233,7 @@ public class RegisterActivity extends AppCompatActivity {
                     btn.setBackgroundResource(R.drawable.btn_primary_selector);
                 } else if (btn == btnDone) {
                     btn.setBackgroundResource(R.drawable.btn_success_selector);
-                } else if (btn == btnAppendUser) {
+                } else if (btn == btnTest || btn == btnAppendUser) {
                     btn.setBackgroundResource(R.drawable.btn_teal_selector);
                 } else {
                     btn.setBackgroundResource(R.drawable.btn_secondary_selector);
@@ -434,6 +437,11 @@ public class RegisterActivity extends AppCompatActivity {
 
     /** 帧处理：检测人脸 + 质量评估 + 状态更新。 */
     private void handleFrame(byte[] nv21, int width, int height) {
+        // 测试识别模式：实时识别并显示结果
+        if (testMode) {
+            processTestFrame(nv21, width, height);
+            return;
+        }
         if (currentState == State.CAPTURING || currentState == State.SUCCESS
                 || currentState == State.MODE_SELECT || currentState == State.USER_LIST) return;
 
@@ -666,14 +674,90 @@ public class RegisterActivity extends AppCompatActivity {
 
     private void onRegisterSuccess(String name, int poseCount) {
         currentState = State.SUCCESS;
+        registeredUserName = name;
         runOnUiThread(() -> {
             tvStatus.setText("注册成功！");
             successLayout.setVisibility(View.VISIBLE);
             String modeText = registerMode == RegisterMode.QUICK ? "快速模式(1张)" : "完整模式(" + poseCount + "/5张)";
             String userText = userMode == UserMode.APPEND ? "追加到：" : "新建用户：";
             tvSuccessName.setText(userText + name + "（" + modeText + "）\n可在 WebUI 查看和管理");
+            // 质量评估
+            String qualityText;
+            int qualityColor;
+            if (poseCount >= 4) {
+                qualityText = "★ 注册质量：优秀（多姿态覆盖完整，识别率高）";
+                qualityColor = 0xFF4CAF50; // 绿色
+            } else if (poseCount >= 2) {
+                qualityText = "● 注册质量：良好（建议补充更多角度提升识别率）";
+                qualityColor = 0xFFFFC107; // 黄色
+            } else {
+                qualityText = "▲ 注册质量：一般（仅1张正脸，建议用完整模式补充侧脸/抬头/低头）";
+                qualityColor = 0xFFFF9800; // 橙色
+            }
+            tvQuality.setText(qualityText);
+            tvQuality.setTextColor(qualityColor);
             overlayView.setStatusText("注册成功 ✓");
         });
+    }
+
+    // ===== 第三阶段：注册后立即测试识别 =====
+    private String registeredUserName = null;
+    private boolean testMode = false;
+    private long lastTestAnalyzeMs = 0;
+    private static final long TEST_ANALYZE_INTERVAL_MS = 300;
+
+    /** 进入测试识别模式：隐藏成功遮罩，保持摄像头，实时显示识别结果。 */
+    private void startTestMode() {
+        testMode = true;
+        runOnUiThread(() -> {
+            successLayout.setVisibility(View.GONE);
+            tvStatus.setText("测试识别中：请面对摄像头，转动头部测试不同角度...");
+            overlayView.setStatusText("测试识别中");
+            Toast.makeText(this, "测试识别模式：转动头部测试不同角度，点击完成退出", Toast.LENGTH_LONG).show();
+        });
+    }
+
+    /** 测试模式下的帧处理：实时识别并显示结果。 */
+    private void processTestFrame(byte[] nv21, int w, int h) {
+        if (!testMode) return;
+        long now = System.currentTimeMillis();
+        if (now - lastTestAnalyzeMs < TEST_ANALYZE_INTERVAL_MS) return;
+        lastTestAnalyzeMs = now;
+        try {
+            FaceServer fs = FaceServer.getInstance();
+            List<FaceInfo> faces = fs.detectFacesOnly(nv21, w, h, null);
+            if (faces == null || faces.isEmpty()) {
+                runOnUiThread(() -> tvStatus.setText("测试识别：未检测到人脸，请靠近摄像头"));
+                return;
+            }
+            // 只取最大的一张脸
+            FaceInfo best = faces.get(0);
+            int maxArea = 0;
+            for (FaceInfo f : faces) {
+                int area = f.getRect().width() * f.getRect().height();
+                if (area > maxArea) { maxArea = area; best = f; }
+            }
+            FaceServer.RecognizeResult rr = fs.featureAndCompare(nv21, w, h, best);
+            final String name = (rr.name == null || rr.name.isEmpty() || "未知".equals(rr.name)) ? "未识别" : rr.name;
+            final float score = rr.score;
+            final boolean isRegistered = registeredUserName != null && registeredUserName.equals(name);
+            runOnUiThread(() -> {
+                String status = "测试识别：" + name + " 相似度=" + String.format("%.2f", score);
+                if (isRegistered) {
+                    status += " ✓（与注册用户匹配）";
+                    tvStatus.setTextColor(0xFF4CAF50);
+                } else if ("未识别".equals(name)) {
+                    status += " ✗（未匹配到注册用户，建议补充该角度照片）";
+                    tvStatus.setTextColor(0xFFFF9800);
+                } else {
+                    status += "（识别为其他用户）";
+                    tvStatus.setTextColor(0xFFB0BEC5);
+                }
+                tvStatus.setText(status);
+            });
+        } catch (Exception e) {
+            Log.w("RegisterTest", "test frame failed", e);
+        }
     }
 
     private void resetToReady() {

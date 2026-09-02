@@ -438,12 +438,37 @@
             android:text=""
             android:textColor="#B0BEC5"
             android:textSize="16sp"
-            android:layout_marginBottom="32dp" />
+            android:gravity="center"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tv_quality"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#FFD54F"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:layout_marginBottom="24dp" />
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_test"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="测试识别"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/btn_teal_selector"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp"
+                android:layout_marginEnd="12dp"
+                android:focusable="true" />
 
             <Button
                 android:id="@+id/btn_done"
@@ -456,7 +481,7 @@
                 android:paddingEnd="32dp"
                 android:paddingTop="12dp"
                 android:paddingBottom="12dp"
-                android:layout_marginEnd="16dp"
+                android:layout_marginEnd="12dp"
                 android:focusable="true" />
 
             <Button

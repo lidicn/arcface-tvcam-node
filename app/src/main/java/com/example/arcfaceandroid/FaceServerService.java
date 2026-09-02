@@ -400,6 +400,9 @@ public class FaceServerService extends Service {
 
         analyzeFrameCount++;
         HotspotManager hs = HotspotManager.get();
+        // P3-2: 根据上一帧的最大移动速度动态调整热点 ROI 大小（静止缩小ROI提速，移动扩大ROI跟人）
+        float maxMoveSpeed = RecognitionState.get().getMaxMoveSpeed();
+        hs.setDynamicPadBySpeed(maxMoveSpeed);
         boolean useRoi = hs.hasHotspots();
         List<Rect> rois = useRoi ? hs.toPixelRois(w, h) : null;
 

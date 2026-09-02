@@ -22,6 +22,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public final class RecognitionState {
 
+    private static final String TAG = "RecognitionState";
     private static final RecognitionState INSTANCE = new RecognitionState();
 
     public static RecognitionState get() {
@@ -44,6 +45,28 @@ public final class RecognitionState {
     /** 人脸消失后保留该人显示的最长时间（ms），避免短暂遮挡即消失。
      *  单人场景优化：从 1500 增加到 3000，减少短暂遮挡/姿态变化导致的频繁消失。 */
     private static final long LIVE_HOLD_MS = 3000;
+
+    // ===== 四态状态机（候选→确认→稳定→离开）=====
+    /** 状态：候选（首次检测到，还没确认，不显示） */
+    private static final int STATE_CANDIDATE = 0;
+    /** 状态：确认（连续2帧匹配，已显示） */
+    private static final int STATE_CONFIRMED = 1;
+    /** 状态：稳定（连续5帧匹配+平均相似度>0.8，稳定显示，可降采样） */
+    private static final int STATE_STABLE = 2;
+    /** 状态：离开（连续未检测到，保持显示中，超时移除） */
+    private static final int STATE_LEAVING = 3;
+    /** 候选→确认：连续匹配帧数 */
+    private static final int CONFIRM_FRAMES = 2;
+    /** 确认→稳定：连续匹配帧数 */
+    private static final int STABLE_FRAMES = 5;
+    /** 确认→稳定：最低平均相似度 */
+    private static final float STABLE_MIN_SIM = 0.80f;
+    /** 确认/稳定→离开：连续未匹配帧数 */
+    private static final int LEAVE_FRAMES = 3;
+    /** 离开→移除：超时时间（ms） */
+    private static final long LEAVE_TIMEOUT_MS = 3000;
+    /** 候选→移除：未匹配超时（ms），候选状态太脆弱，1秒未匹配就移除 */
+    private static final long CANDIDATE_TIMEOUT_MS = 1000;
     /** 跨帧稳定轨迹表（faceId 优先，回退中心距离 + 特征相似度关联）。 */
     private final Map<String, LiveTrack> liveTracks = new HashMap<>();
     private int liveTrackSeq = 0;
@@ -76,13 +99,24 @@ public final class RecognitionState {
 
     // ===== P3-3: 识别质量统计（供 /api/stats 和 WebUI 监控面板）=====
 
-    /** 获取识别质量统计信息（JSON 格式字符串）。 */
+    /** 获取识别质量统计信息（JSON 格式字符串）。
+     *  P3-状态机: 增加各状态人数统计。 */
     public String getStatsJson() {
         long now = System.currentTimeMillis();
         float detectionRate = statTotalFrames > 0 ? (float) statFramesWithFace / statTotalFrames : 0f;
         float matchRate = (statMatchedCount + statUnknownCount) > 0
                 ? (float) statMatchedCount / (statMatchedCount + statUnknownCount) : 0f;
         long lastMatchAgo = statLastMatchMs > 0 ? (now - statLastMatchMs) : -1;
+        // 状态机统计
+        int candidateCount = 0, confirmedCount = 0, stableCount = 0, leavingCount = 0;
+        synchronized (liveTracks) {
+            for (LiveTrack t : liveTracks.values()) {
+                if (t.state == STATE_CANDIDATE) candidateCount++;
+                else if (t.state == STATE_CONFIRMED) confirmedCount++;
+                else if (t.state == STATE_STABLE) stableCount++;
+                else if (t.state == STATE_LEAVING) leavingCount++;
+            }
+        }
         return "{"
                 + "\"total_frames\":" + statTotalFrames
                 + ",\"frames_with_face\":" + statFramesWithFace
@@ -92,6 +126,10 @@ public final class RecognitionState {
                 + ",\"match_rate\":" + String.format("%.3f", matchRate)
                 + ",\"avg_similarity\":" + String.format("%.3f", statAvgSimilarity)
                 + ",\"current_tracks\":" + statCurrentTracks
+                + ",\"state_candidate\":" + candidateCount
+                + ",\"state_confirmed\":" + confirmedCount
+                + ",\"state_stable\":" + stableCount
+                + ",\"state_leaving\":" + leavingCount
                 + ",\"last_match_ago_ms\":" + lastMatchAgo
                 + ",\"adaptive_threshold\":" + String.format("%.3f", RecognitionOptimizer.get().getAdaptiveThreshold())
                 + ",\"detect_mode\":\"" + (FaceServer.currentDetectMode == com.arcsoft.face.enums.DetectMode.ASF_DETECT_MODE_VIDEO ? "VIDEO" : "IMAGE") + "\""
@@ -155,10 +193,31 @@ public final class RecognitionState {
                     }
                 }
             }
-            // 过期清理（持有期内仍显示，避免短暂遮挡即消失）
+            // 过期清理（状态机驱动：候选超时/离开超时/原有持有期兜底）
             Iterator<Map.Entry<String, LiveTrack>> it = liveTracks.entrySet().iterator();
             while (it.hasNext()) {
-                if (now - it.next().getValue().lastSeen > LIVE_HOLD_MS) it.remove();
+                Map.Entry<String, LiveTrack> entry = it.next();
+                LiveTrack t = entry.getValue();
+                boolean remove = false;
+                if (t.state == STATE_CANDIDATE) {
+                    // 候选状态：超过 CANDIDATE_TIMEOUT_MS 未确认就移除（候选太脆弱）
+                    if (t.stateEnterTime > 0 && (now - t.stateEnterTime) > CANDIDATE_TIMEOUT_MS) {
+                        remove = true;
+                        Log.i(TAG, "state: CANDIDATE timeout removed (unconfirmed)");
+                    }
+                } else if (t.state == STATE_LEAVING) {
+                    // 离开状态：超过 LEAVE_TIMEOUT_MS 未回归就移除
+                    if ((now - t.stateEnterTime) > LEAVE_TIMEOUT_MS) {
+                        remove = true;
+                        Log.i(TAG, "state: LEAVING timeout removed name=" + t.curName);
+                    }
+                } else {
+                    // 确认/稳定状态：原有持有期兜底（正常情况下不会走到这里，因为会先转 LEAVING）
+                    if (now - t.lastSeen > LIVE_HOLD_MS) {
+                        remove = true;
+                    }
+                }
+                if (remove) it.remove();
             }
             statCurrentTracks = liveTracks.size();
         }
@@ -240,7 +299,8 @@ public final class RecognitionState {
         updateTrack(t, r, now);
     }
 
-    /** 更新单条轨迹的状态（姓名、相似度、位置、特征、颜色、移动速度）。 */
+    /** 更新单条轨迹的状态（姓名、相似度、位置、特征、颜色、移动速度、状态机）。
+     *  P3-状态机: 四态转换 候选→确认→稳定→离开，减少跳名和闪烁。 */
     private void updateTrack(LiveTrack t, RecognizeResult r, long now) {
         t.seenThisFrame = true;
         t.rect = r.rect;
@@ -264,21 +324,91 @@ public final class RecognitionState {
 
         String nm = (r.name == null || "未知".equals(r.name)) ? "" : r.name;
         if (!nm.isEmpty()) {
+            // ===== 匹配成功 =====
+            t.consecutiveMatches++;
+            t.consecutiveMisses = 0;
+            t.avgSimilarity = t.avgSimilarity * 0.7f + r.score * 0.3f; // EMA 平滑
+
             // P3-3: 统计匹配成功
             statMatchedCount++;
             statAvgSimilarity = statAvgSimilarity * 0.9f + r.score * 0.1f; // 滑动平均
             statLastMatchMs = now;
 
+            // 候选姓名累计（用于可能的姓名切换）
             if (nm.equals(t.candName)) t.candCount++;
             else { t.candName = nm; t.candScore = r.score; t.candCount = 1; }
-            if (t.candName.equals(t.curName) || t.curName.isEmpty()) {
-                t.curName = t.candName; t.curScore = t.candScore;
-            } else if (t.candCount >= LIVE_CONSENSUS_FRAMES) {
-                t.curName = t.candName; t.curScore = t.candScore;   // 迟滞后切换
+
+            // ===== 状态机转换（匹配成功时）=====
+            if (t.state == STATE_CANDIDATE) {
+                // 候选→确认：连续2帧匹配
+                if (t.consecutiveMatches >= CONFIRM_FRAMES) {
+                    t.state = STATE_CONFIRMED;
+                    t.stateEnterTime = now;
+                    t.curName = nm;
+                    t.curScore = r.score;
+                    Log.i(TAG, "state: CANDIDATE→CONFIRMED name=" + nm
+                            + " sim=" + String.format("%.2f", r.score));
+                }
+            } else if (t.state == STATE_CONFIRMED) {
+                // 确认→稳定：连续5帧匹配 + 平均相似度>0.8
+                if (t.consecutiveMatches >= STABLE_FRAMES && t.avgSimilarity >= STABLE_MIN_SIM) {
+                    t.state = STATE_STABLE;
+                    t.stateEnterTime = now;
+                    Log.i(TAG, "state: CONFIRMED→STABLE name=" + nm
+                            + " avg_sim=" + String.format("%.2f", t.avgSimilarity));
+                }
+                // 确认状态下姓名切换：候选姓名变化且连续2帧
+                if (!t.candName.equals(t.curName) && t.candCount >= LIVE_CONSENSUS_FRAMES) {
+                    t.curName = t.candName;
+                    t.curScore = t.candScore;
+                    t.consecutiveMatches = 0; // 切换姓名后重新计数
+                    Log.i(TAG, "state: CONFIRMED name switch " + t.curName + "→" + nm);
+                }
+            } else if (t.state == STATE_STABLE) {
+                // 稳定状态下姓名切换：候选姓名变化且连续2帧（稳定状态更谨慎，但家庭场景2帧够了）
+                if (!t.candName.equals(t.curName) && t.candCount >= LIVE_CONSENSUS_FRAMES) {
+                    t.curName = t.candName;
+                    t.curScore = t.candScore;
+                    t.state = STATE_CONFIRMED; // 切换姓名后降回确认状态
+                    t.stateEnterTime = now;
+                    t.consecutiveMatches = 0;
+                    Log.i(TAG, "state: STABLE→CONFIRMED name switch " + t.curName + "→" + nm);
+                } else {
+                    t.curScore = t.curScore * 0.8f + r.score * 0.2f; // 稳定状态平滑更新相似度
+                }
+            } else if (t.state == STATE_LEAVING) {
+                // 离开→确认（回退）：人又出现了
+                t.state = STATE_CONFIRMED;
+                t.stateEnterTime = now;
+                t.consecutiveMatches = 1; // 重新计数
+                if (!nm.equals(t.curName)) {
+                    t.curName = nm;
+                    t.curScore = r.score;
+                }
+                Log.i(TAG, "state: LEAVING→CONFIRMED name=" + nm + " (returned)");
             }
         } else {
+            // ===== 未匹配（检测到人脸但未识别出姓名，或无人脸）=====
+            t.consecutiveMisses++;
+            t.consecutiveMatches = 0;
+
             // P3-3: 统计未知/未匹配
             statUnknownCount++;
+
+            // ===== 状态机转换（未匹配时）=====
+            if (t.state == STATE_CANDIDATE) {
+                // 候选状态未匹配：不立即移除，等超时（候选太脆弱，但给1秒机会）
+                // 清理时会检查 CANDIDATE_TIMEOUT_MS
+            } else if (t.state == STATE_CONFIRMED || t.state == STATE_STABLE) {
+                // 确认/稳定→离开：连续3帧未匹配
+                if (t.consecutiveMisses >= LEAVE_FRAMES) {
+                    t.state = STATE_LEAVING;
+                    t.stateEnterTime = now;
+                    Log.i(TAG, "state: " + (t.state == STATE_STABLE ? "STABLE" : "CONFIRMED")
+                            + "→LEAVING name=" + t.curName + " misses=" + t.consecutiveMisses);
+                }
+            }
+            // LEAVING 状态不在这里处理，清理时检查 LEAVE_TIMEOUT_MS
         }
         t.lastSeen = now;
         // 更新特征向量（用于下一帧 ReID 关联）
@@ -367,32 +497,44 @@ public final class RecognitionState {
         return dot / (float)(Math.sqrt(normA) * Math.sqrt(normB));
     }
 
-    /** 共识后的实时名单（供 HA / 仪表盘读取"谁在镜前"）。 */
+    /** 共识后的实时名单（供 HA / 仪表盘读取"谁在镜前"）。
+     *  P3-状态机: 只返回确认/稳定/离开状态的人（候选不显示），标记稳定/离开状态。 */
     public List<PersonView> getLivePersons() {
         List<PersonView> out = new ArrayList<>();
         synchronized (liveTracks) {
             for (LiveTrack t : liveTracks.values()) {
+                // 候选状态不显示（还没确认）
+                if (t.state == STATE_CANDIDATE) continue;
+                // 确认/稳定状态需要有姓名；离开状态保留最后姓名
                 if (t.rect == null && t.curName.isEmpty()) continue;
                 PersonView p = new PersonView();
                 p.name = t.curName;
                 p.similarity = t.curScore;
                 p.rect = t.rect;
                 p.faceId = t.faceId;
+                p.state = t.state;
                 out.add(p);
             }
         }
         return out;
     }
 
-    /** 共识后的单人视图（姓名 + 相似度 + 位置 + faceId）。 */
+    /** 共识后的单人视图（姓名 + 相似度 + 位置 + faceId + 状态）。 */
     public static class PersonView {
         public String name = "";
         public float similarity = 0f;
         public Rect rect = null;
         public int faceId = -1;
+        /** 状态：0=候选(不显示) 1=确认 2=稳定 3=离开中 */
+        public int state = STATE_CONFIRMED;
+        /** 是否处于稳定状态（可用于UI区分显示样式） */
+        public boolean isStable() { return state == STATE_STABLE; }
+        /** 是否处于离开状态（可用于UI显示"离开中"） */
+        public boolean isLeaving() { return state == STATE_LEAVING; }
     }
 
-    /** 跨帧共识轨迹：维护当前显示姓名（迟滞）与候选姓名（投票）。 */
+    /** 跨帧共识轨迹：维护当前显示姓名（迟滞）与候选姓名（投票）。
+     *  P3-状态机: 四态状态机 候选→确认→稳定→离开，减少跳名和闪烁。 */
     private static final class LiveTrack {
         String id;
         int faceId = -1;
@@ -413,10 +555,33 @@ public final class RecognitionState {
         float moveSpeed = 0f;
         /** 上一帧中心位置（用于计算移动速度）。 */
         int lastCx = 0, lastCy = 0;
+        // ===== 四态状态机字段 =====
+        /** 当前状态：STATE_CANDIDATE / STATE_CONFIRMED / STATE_STABLE / STATE_LEAVING */
+        int state = STATE_CANDIDATE;
+        /** 连续匹配帧数（匹配成功+1，未匹配清零） */
+        int consecutiveMatches = 0;
+        /** 连续未匹配帧数（未匹配+1，匹配成功清零） */
+        int consecutiveMisses = 0;
+        /** 滑动平均相似度（用于稳定状态判定） */
+        float avgSimilarity = 0f;
+        /** 进入当前状态的时间戳（用于离开超时判定） */
+        long stateEnterTime = 0;
     }
 
     public int getFrameW() {
         return frameW;
+    }
+
+    /** P3-2: 获取当前活跃轨迹的最大移动速度（px/帧），用于热点 ROI 动态调整。 */
+    public float getMaxMoveSpeed() {
+        float maxSpeed = 0f;
+        synchronized (liveTracks) {
+            for (LiveTrack t : liveTracks.values()) {
+                if (t.state == STATE_LEAVING) continue; // 离开状态不参与
+                if (t.moveSpeed > maxSpeed) maxSpeed = t.moveSpeed;
+            }
+        }
+        return maxSpeed;
     }
 
     public int getFrameH() {
@@ -468,46 +633,140 @@ public final class RecognitionState {
     public long getPanoUpdateMs() { return panoUpdateMs; }
 
     /**
-     * 按名融合 TV 路 + 米家路：同名取最高分（max），标记各路是否命中。
-     * 返回所有在任一路被识别到的人（bestScore 取两路最大），UI 只展示 matched=true 的即可。
+     * 跨路 ReID 融合 TV 路 + 米家路：
+     * 1. 先按特征向量关联两路的同一张脸（余弦相似度 > REID_SIM_THRESHOLD）
+     * 2. 任一路识别出名字，另一路也标记为该人（解决一路侧脸没识别出但另一路正脸识别出的情况）
+     * 3. 同名取最高分（max），标记各路是否命中
      *
      * 新鲜度过滤：米家路结果超过 PANORAMA_FRESH_MS（默认30s）未更新则不参与融合，
      * 避免掉线后旧结果残留污染实时名单（frame.jpeg 单帧延迟 4-13s）。
      */
     public List<FusedPerson> getFusedPeople() {
-        Map<String, FusedPerson> map = new HashMap<>();
-        mergeInto(map, results, true);
+        // 跨路 ReID 特征相似度阈值（同一人不同摄像头角度通常 >0.70）
+        final float REID_SIM_THRESHOLD = 0.70f;
+
+        // 1. 收集 TV 路所有结果（包括没名字但有特征的）
+        List<RecognizeResult> tvList = new ArrayList<>();
+        if (results != null) {
+            for (RecognizeResult r : results) {
+                if (r != null && r.rect != null) tvList.add(r);
+            }
+        }
+
+        // 2. 收集米家路所有结果（新鲜度过滤）
+        List<RecognizeResult> panoList = new ArrayList<>();
         boolean panoFresh = panoUpdateMs > 0
                 && (System.currentTimeMillis() - panoUpdateMs) <= Constants.PANORAMA_FRESH_MS;
-        if (panoFresh) {
-            mergeInto(map, panoResults, false);
+        if (panoFresh && panoResults != null) {
+            for (RecognizeResult r : panoResults) {
+                if (r != null && r.rect != null) panoList.add(r);
+            }
         }
+
+        // 3. 跨路 ReID 关联：用特征向量匹配两路的同一张脸
+        //    构建 TV→Pano 的匹配映射
+        Map<Integer, Integer> tvToPanoMatch = new HashMap<>();
+        for (int i = 0; i < tvList.size(); i++) {
+            RecognizeResult tv = tvList.get(i);
+            if (tv.feature == null || tv.feature.length == 0) continue;
+            float bestSim = 0f;
+            int bestJ = -1;
+            for (int j = 0; j < panoList.size(); j++) {
+                if (tvToPanoMatch.containsValue(j)) continue; // 已被其他 TV 脸匹配
+                RecognizeResult pano = panoList.get(j);
+                if (pano.feature == null || pano.feature.length == 0) continue;
+                float sim = cosineSimilarity(tv.feature, pano.feature);
+                if (sim > bestSim) {
+                    bestSim = sim;
+                    bestJ = j;
+                }
+            }
+            if (bestJ >= 0 && bestSim >= REID_SIM_THRESHOLD) {
+                tvToPanoMatch.put(i, bestJ);
+            }
+        }
+
+        // 4. 融合：按关联对分组，输出最终名单
+        Map<String, FusedPerson> map = new HashMap<>();
+        boolean[] panoUsed = new boolean[panoList.size()];
+
+        // 4a. 处理 TV 路结果（按关联对融合）
+        for (int i = 0; i < tvList.size(); i++) {
+            RecognizeResult tv = tvList.get(i);
+            Integer panoIdx = tvToPanoMatch.get(i);
+            RecognizeResult pano = (panoIdx != null) ? panoList.get(panoIdx) : null;
+            if (panoIdx != null) panoUsed[panoIdx] = true;
+
+            // 确定姓名：TV 路有名字用 TV 的，否则用米家路的（ReID 辅助）
+            String tvName = (tv.name == null || tv.name.isEmpty() || "未知".equals(tv.name)) ? "" : tv.name;
+            String panoName = (pano != null && pano.name != null && !pano.name.isEmpty() && !"未知".equals(pano.name)) ? pano.name : "";
+            String name = !tvName.isEmpty() ? tvName : panoName;
+
+            if (name.isEmpty()) continue; // 两路都没识别出名字，跳过
+
+            float score = !tvName.isEmpty() ? tv.score : (pano != null ? pano.score : 0f);
+            // 如果两路都有名字且不同，取分数高的
+            if (!tvName.isEmpty() && !panoName.isEmpty() && !tvName.equals(panoName)) {
+                if (pano.score > tv.score) {
+                    name = panoName;
+                    score = pano.score;
+                }
+            }
+
+            FusedPerson p = map.get(name);
+            if (p == null) {
+                p = new FusedPerson();
+                p.name = name;
+                p.bestScore = score;
+                map.put(name, p);
+            } else if (score > p.bestScore) {
+                p.bestScore = score;
+            }
+            p.fromTv = true;
+            if (p.tvFeature == null && tv.feature != null) p.tvFeature = tv.feature.clone();
+            if (pano != null) {
+                p.fromPano = true;
+                if (p.panoFeature == null && pano.feature != null) p.panoFeature = pano.feature.clone();
+                // 如果 TV 路没识别出名字但米家路识别出了，标记为 ReID 辅助
+                if (tvName.isEmpty() && !panoName.isEmpty()) p.matchedByReid = true;
+            }
+        }
+
+        // 4b. 处理米家路剩余结果（没被 TV 路关联的）
+        for (int j = 0; j < panoList.size(); j++) {
+            if (panoUsed[j]) continue;
+            RecognizeResult pano = panoList.get(j);
+            String name = (pano.name == null || pano.name.isEmpty() || "未知".equals(pano.name)) ? "" : pano.name;
+            if (name.isEmpty()) continue;
+
+            FusedPerson p = map.get(name);
+            if (p == null) {
+                p = new FusedPerson();
+                p.name = name;
+                p.bestScore = pano.score;
+                map.put(name, p);
+            } else if (pano.score > p.bestScore) {
+                p.bestScore = pano.score;
+            }
+            p.fromPano = true;
+            if (p.panoFeature == null && pano.feature != null) p.panoFeature = pano.feature.clone();
+        }
+
         return new ArrayList<>(map.values());
     }
 
-    private void mergeInto(Map<String, FusedPerson> map, List<RecognizeResult> list, boolean fromTv) {
-        if (list == null) return;
-        for (RecognizeResult r : list) {
-            if (r == null || r.name == null || r.name.isEmpty() || "未知".equals(r.name)) continue;
-            FusedPerson p = map.get(r.name);
-            if (p == null) {
-                p = new FusedPerson();
-                p.name = r.name;
-                p.bestScore = r.score;
-                map.put(r.name, p);
-            } else if (r.score > p.bestScore) {
-                p.bestScore = r.score;
-            }
-            if (fromTv) p.fromTv = true; else p.fromPano = true;
-        }
-    }
-
-    /** 融合后的单人：姓名 + 两路最高分 + 各路是否命中。 */
+    /** 融合后的单人：姓名 + 两路最高分 + 各路是否命中 + 特征向量（用于跨路 ReID）。 */
     public static class FusedPerson {
         public String name;
         public float bestScore;
         public boolean fromTv;
         public boolean fromPano;
+        /** TV 路的特征向量（可能为 null） */
+        public float[] tvFeature = null;
+        /** 米家路的特征向量（可能为 null） */
+        public float[] panoFeature = null;
+        /** 是否通过 ReID 跨路关联（一路没识别出名字但特征匹配） */
+        public boolean matchedByReid = false;
         public boolean isMatched() { return bestScore >= Constants.MATCH_THRESHOLD; }
     }
 

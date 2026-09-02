@@ -54,6 +54,10 @@ public final class HotspotManager {
     private static final float ACTIVE_W = 1.0f;        // 至少命中一次才参与 ROI
     private static final int MAX_HOTS = 6;
     private static final float PAD = 0.35f;            // ROI 扩边容错比例（并排多人也能纳入框内）
+    /** P3-2: 动态 PAD（基于移动速度调整 ROI 大小）。静止时缩小 ROI 提速，移动时扩大 ROI 跟人。 */
+    private volatile float dynamicPad = PAD;
+    private static final float PAD_MIN = 0.15f;   // 静止时最小 PAD
+    private static final float PAD_MAX = 0.80f;   // 快速移动时最大 PAD
     private static final long MAX_HOTSPOT_AGE_MS = 5 * 60 * 1000L; // 旧位置最大存活时长：无命中即失效，避免锁死过期位置（摄像头移位/换座后自动重学）
 
     public void init(Context c) {
@@ -121,7 +125,7 @@ public final class HotspotManager {
             int rh = (int) (hp.h * frameH);
             int rx = (int) ((hp.x - hp.w / 2) * frameW);
             int ry = (int) ((hp.y - hp.h / 2) * frameH);
-            int padX = (int) (PAD * rw), padY = (int) (PAD * rh);
+            int padX = (int) (dynamicPad * rw), padY = (int) (dynamicPad * rh);
             rx -= padX; ry -= padY; rw += padX * 2; rh += padY * 2;
             // 对齐
             rx &= ~1; ry &= ~1; rw &= ~1; rh &= ~1;
@@ -140,6 +144,18 @@ public final class HotspotManager {
 
     public synchronized boolean hasHotspots() { return !hots.isEmpty(); }
     public synchronized int count() { return hots.size(); }
+
+    /** P3-2: 根据移动速度设置动态 PAD（ROI 扩边比例）。 */
+    public void setDynamicPadBySpeed(float moveSpeedPxPerFrame) {
+        float pad;
+        if (moveSpeedPxPerFrame < 5f) pad = PAD_MIN;
+        else if (moveSpeedPxPerFrame < 15f) pad = 0.25f;
+        else if (moveSpeedPxPerFrame < 30f) pad = 0.45f;
+        else pad = PAD_MAX;
+        dynamicPad = dynamicPad * 0.7f + pad * 0.3f;
+    }
+
+    public float getDynamicPad() { return dynamicPad; }
 
     /** 当前活跃（已命中且未过期）热点数，供 analyze 决策与触发式全图判断。 */
     public synchronized int activeCount() {
