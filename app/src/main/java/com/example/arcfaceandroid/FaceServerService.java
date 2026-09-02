@@ -138,6 +138,8 @@ public class FaceServerService extends Service {
         int faceId = -1;
         String name;
         float score;
+        int age = -1;
+        int gender = -1;
         long ts;
     }
 
@@ -478,9 +480,11 @@ public class FaceServerService extends Service {
                     rr.faceId = fi.getFaceId();
                     rr.name = cached.name;
                     rr.score = cached.score;
+                    rr.age = cached.age;
+                    rr.gender = cached.gender;
                 } else {
                     rr = fs.featureAndCompare(nv21, w, h, fi);
-                    putCache(rr.rect, rr.faceId, rr.name, rr.score, w);
+                    putCache(rr.rect, rr.faceId, rr.name, rr.score, rr.age, rr.gender, w);
                     featCalls++;
                 }
                 results.add(rr);
@@ -562,13 +566,15 @@ public class FaceServerService extends Service {
         return (best != null && bestD < thr) ? best : null;
     }
 
-    private void putCache(Rect r, int faceId, String name, float score, int w) {
+    private void putCache(Rect r, int faceId, String name, float score, int age, int gender, int w) {
         CachedFace c = matchCache(r, faceId, w);
         if (c != null) {
-            c.rect = r; c.faceId = faceId; c.name = name; c.score = score; c.ts = System.currentTimeMillis();
+            c.rect = r; c.faceId = faceId; c.name = name; c.score = score;
+            c.age = age; c.gender = gender; c.ts = System.currentTimeMillis();
         } else {
             CachedFace nc = new CachedFace();
-            nc.rect = r; nc.faceId = faceId; nc.name = name; nc.score = score; nc.ts = System.currentTimeMillis();
+            nc.rect = r; nc.faceId = faceId; nc.name = name; nc.score = score;
+            nc.age = age; nc.gender = gender; nc.ts = System.currentTimeMillis();
             faceCache.add(nc);
         }
         long now = System.currentTimeMillis();
