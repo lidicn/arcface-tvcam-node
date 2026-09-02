@@ -322,6 +322,16 @@ public final class RecognitionState {
             t.colorHist = r.colorHist.clone();
         }
 
+        // 年龄性别：年龄 EMA 平滑，性别取众数
+        if (r.age >= 0) {
+            if (t.ageSmoothed < 0) t.ageSmoothed = r.age;
+            else t.ageSmoothed = t.ageSmoothed * 0.8f + r.age * 0.2f;
+        }
+        if (r.gender == 0) t.maleCount++;
+        else if (r.gender == 1) t.femaleCount++;
+        if (t.maleCount > t.femaleCount) t.genderSmoothed = 0;
+        else if (t.femaleCount > t.maleCount) t.genderSmoothed = 1;
+
         String nm = (r.name == null || "未知".equals(r.name)) ? "" : r.name;
         if (!nm.isEmpty()) {
             // ===== 匹配成功 =====
@@ -513,6 +523,8 @@ public final class RecognitionState {
                 p.rect = t.rect;
                 p.faceId = t.faceId;
                 p.state = t.state;
+                p.age = (t.ageSmoothed >= 0) ? Math.round(t.ageSmoothed) : -1;
+                p.gender = t.genderSmoothed;
                 out.add(p);
             }
         }
@@ -527,6 +539,10 @@ public final class RecognitionState {
         public int faceId = -1;
         /** 状态：0=候选(不显示) 1=确认 2=稳定 3=离开中 */
         public int state = STATE_CONFIRMED;
+        /** 年龄（ArcSoft ASF_AGE），-1 表示未知 */
+        public int age = -1;
+        /** 性别（ArcSoft ASF_GENDER）：0=男，1=女，-1=未知 */
+        public int gender = -1;
         /** 是否处于稳定状态（可用于UI区分显示样式） */
         public boolean isStable() { return state == STATE_STABLE; }
         /** 是否处于离开状态（可用于UI显示"离开中"） */
@@ -555,6 +571,12 @@ public final class RecognitionState {
         float moveSpeed = 0f;
         /** 上一帧中心位置（用于计算移动速度）。 */
         int lastCx = 0, lastCy = 0;
+        /** 年龄（EMA 平滑，-1=未知） */
+        float ageSmoothed = -1f;
+        /** 性别（取众数，-1=未知，0=男，1=女） */
+        int genderSmoothed = -1;
+        /** 性别统计：男性帧数、女性帧数（用于众数） */
+        int maleCount = 0, femaleCount = 0;
         // ===== 四态状态机字段 =====
         /** 当前状态：STATE_CANDIDATE / STATE_CONFIRMED / STATE_STABLE / STATE_LEAVING */
         int state = STATE_CANDIDATE;
@@ -724,11 +746,17 @@ public final class RecognitionState {
             }
             p.fromTv = true;
             if (p.tvFeature == null && tv.feature != null) p.tvFeature = tv.feature.clone();
+            // 年龄性别：TV 路优先，米家路补充
+            if (p.age < 0 && tv.age >= 0) p.age = tv.age;
+            if (p.gender < 0 && tv.gender >= 0) p.gender = tv.gender;
             if (pano != null) {
                 p.fromPano = true;
                 if (p.panoFeature == null && pano.feature != null) p.panoFeature = pano.feature.clone();
                 // 如果 TV 路没识别出名字但米家路识别出了，标记为 ReID 辅助
                 if (tvName.isEmpty() && !panoName.isEmpty()) p.matchedByReid = true;
+                // 米家路补充年龄性别
+                if (p.age < 0 && pano.age >= 0) p.age = pano.age;
+                if (p.gender < 0 && pano.gender >= 0) p.gender = pano.gender;
             }
         }
 
@@ -750,6 +778,8 @@ public final class RecognitionState {
             }
             p.fromPano = true;
             if (p.panoFeature == null && pano.feature != null) p.panoFeature = pano.feature.clone();
+            if (p.age < 0 && pano.age >= 0) p.age = pano.age;
+            if (p.gender < 0 && pano.gender >= 0) p.gender = pano.gender;
         }
 
         return new ArrayList<>(map.values());
@@ -767,6 +797,10 @@ public final class RecognitionState {
         public float[] panoFeature = null;
         /** 是否通过 ReID 跨路关联（一路没识别出名字但特征匹配） */
         public boolean matchedByReid = false;
+        /** 年龄（取两路中有效的，-1=未知） */
+        public int age = -1;
+        /** 性别（0=男，1=女，-1=未知） */
+        public int gender = -1;
         public boolean isMatched() { return bestScore >= Constants.MATCH_THRESHOLD; }
     }
 

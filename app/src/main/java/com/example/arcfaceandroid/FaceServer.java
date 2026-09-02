@@ -10,6 +10,8 @@ import com.arcsoft.face.FaceEngine;
 import com.arcsoft.face.FaceFeature;
 import com.arcsoft.face.FaceInfo;
 import com.arcsoft.face.FaceSimilar;
+import com.arcsoft.face.AgeInfo;
+import com.arcsoft.face.GenderInfo;
 import com.arcsoft.face.enums.DetectFaceOrientPriority;
 import com.arcsoft.face.enums.DetectMode;
 
@@ -119,7 +121,7 @@ public class FaceServer {
                         DetectMode.ASF_DETECT_MODE_IMAGE,
                         DetectFaceOrientPriority.ASF_OP_ALL_OUT,
                         4, 10,
-                        FaceEngine.ASF_FACE_RECOGNITION | FaceEngine.ASF_FACE_DETECT);
+                        FaceEngine.ASF_FACE_RECOGNITION | FaceEngine.ASF_FACE_DETECT | FaceEngine.ASF_AGE | FaceEngine.ASF_GENDER);
                 if (engineCode == ErrorInfo.MOK) {
                     lastInitError = "";
                     currentDetectMode = DetectMode.ASF_DETECT_MODE_IMAGE;
@@ -173,7 +175,7 @@ public class FaceServer {
                 DetectMode.ASF_DETECT_MODE_IMAGE,
                 DetectFaceOrientPriority.ASF_OP_ALL_OUT,
                 4, 10,
-                FaceEngine.ASF_FACE_RECOGNITION | FaceEngine.ASF_FACE_DETECT);
+                FaceEngine.ASF_FACE_RECOGNITION | FaceEngine.ASF_FACE_DETECT | FaceEngine.ASF_AGE | FaceEngine.ASF_GENDER);
         if (code == ErrorInfo.MOK) {
             currentDetectMode = DetectMode.ASF_DETECT_MODE_IMAGE;
             videoModeFailCount = 0;
@@ -763,6 +765,37 @@ public class FaceServer {
         }
     }
 
+    /** 提取单张人脸的年龄和性别（ArcSoft ASF_AGE + ASF_GENDER）。
+     *  返回 int[]{age, gender}：age=-1 或 gender=-1 表示提取失败。
+     *  注意：process 会修改引擎内部状态，需在 synchronized(faceEngine) 块内调用。 */
+    private int[] extractAgeGender(byte[] nv21, int w, int h, FaceInfo fi) {
+        int[] result = new int[]{-1, -1};
+        if (faceEngine == null || fi == null || nv21 == null) return result;
+        try {
+            List<FaceInfo> single = new ArrayList<>();
+            single.add(fi);
+            int procCode = faceEngine.process(nv21, w, h, FaceEngine.CP_PAF_NV21, single,
+                    FaceEngine.ASF_AGE | FaceEngine.ASF_GENDER);
+            if (procCode == ErrorInfo.MOK) {
+                List<AgeInfo> ages = new ArrayList<>();
+                List<GenderInfo> genders = new ArrayList<>();
+                int ageCode = faceEngine.getAge(ages);
+                int genderCode = faceEngine.getGender(genders);
+                if (ageCode == ErrorInfo.MOK && !ages.isEmpty()) {
+                    int a = ages.get(0).getAge();
+                    if (a != AgeInfo.UNKNOWN_AGE) result[0] = a;
+                }
+                if (genderCode == ErrorInfo.MOK && !genders.isEmpty()) {
+                    int g = genders.get(0).getGender();
+                    if (g != GenderInfo.UNKNOWN) result[1] = g; // 0=MALE, 1=FEMALE
+                }
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "extractAgeGender failed: " + t.getMessage());
+        }
+        return result;
+    }
+
     /** 对整图中某张人脸提特征并比对人脸库（不再重新 detect），faceInfo.rect 须为整图坐标。 */
     public RecognizeResult featureAndCompare(byte[] nv21, int w, int h, FaceInfo fi) {
         RecognizeResult r = new RecognizeResult();
@@ -808,6 +841,9 @@ public class FaceServer {
                             CompareResult top = getTopOfFaceLib(uf);
                             if (top != null) { r.name = top.userName; r.score = top.similar; }
                             else { r.name = "未知"; r.score = 0f; }
+                            // 提取年龄性别（小脸上采样分支，用原始 nv21 + 原始人脸框）
+                            int[] ag = extractAgeGender(nv21, w, h, fi);
+                            r.age = ag[0]; r.gender = ag[1];
                         }
                         return r;
                     }
@@ -827,6 +863,9 @@ public class FaceServer {
                 CompareResult top = getTopOfFaceLib(feature);
                 if (top != null) { r.name = top.userName; r.score = top.similar; }
                 else { r.name = "未知"; r.score = 0f; }
+                // 提取年龄性别
+                int[] ag = extractAgeGender(nv21, w, h, fi);
+                r.age = ag[0]; r.gender = ag[1];
             } else {
                 r.name = "未知"; r.score = 0f;
             }
@@ -899,6 +938,10 @@ public class FaceServer {
         public float[] feature = null;
         /** P2-2: 衣着颜色直方图（32维 float，U/V 各 16 bins），用于人体 ReID 辅助跟踪。可能为 null。 */
         public float[] colorHist = null;
+        /** 年龄（ArcSoft ASF_AGE），-1 表示未知。 */
+        public int age = -1;
+        /** 性别（ArcSoft ASF_GENDER）：0=男，1=女，-1=未知。 */
+        public int gender = -1;
     }
 
     /** 将 ArcSoft FaceFeature 的 byte[] 特征转换为 float[]（用于余弦相似度计算）。 */

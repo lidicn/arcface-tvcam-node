@@ -449,6 +449,8 @@ public class FaceHttpServer {
                                 it.put("matched", fp.isMatched());
                                 it.put("fromTv", fp.fromTv);
                                 it.put("fromPano", fp.fromPano);
+                                it.put("age", fp.age);
+                                it.put("gender", fp.gender);
                                 fa.put(it);
                             }
                             o.put("fused", fa);
@@ -758,6 +760,8 @@ public class FaceHttpServer {
                 it.put("name", p.name == null ? "" : p.name);
                 it.put("similarity", Math.round(p.similarity * 1000d) / 1000d);
                 it.put("faceId", p.faceId);
+                it.put("age", p.age);
+                it.put("gender", p.gender);
                 if (p.rect != null) {
                     JSONObject rc = new JSONObject();
                     rc.put("left", p.rect.left); rc.put("top", p.rect.top);
@@ -784,6 +788,8 @@ public class FaceHttpServer {
                 it.put("matched", p.isMatched());
                 it.put("fromTv", p.fromTv);
                 it.put("fromPano", p.fromPano);
+                it.put("age", p.age);
+                it.put("gender", p.gender);
                 arr.put(it);
             }
         } catch (JSONException e) {
